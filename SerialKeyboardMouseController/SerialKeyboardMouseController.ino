@@ -100,7 +100,7 @@ void loop()
             uint16_t y = 0;
             memcpy(&x, ptr_data + 1, 2);
             memcpy(&y, ptr_data + 3, 2);
-            if (x > current_resolution_width || y > current_resolution_height)
+            if (x > current_resolution_width || y > current_resolution_height || x == 0 || y == 0)
             {
                 debug_print("Coordinates out of range: ");
                 debug_print(x);
@@ -113,6 +113,8 @@ void loop()
         }
         case FRAME_TYPE_MOUSE_SCROLL:
         {
+            const int8_t step = static_cast<int8_t>(ptr_data[1]);
+            AbsMouse.move(0, 0, step);
             break;
         }
         case FRAME_TYPE_MOUSE_PRESS:
@@ -169,6 +171,6 @@ void loop()
         }
         // Send loop-back frame
         ControlSerial.write(data_buffer, length + 2);
-        
+
     }
 }
