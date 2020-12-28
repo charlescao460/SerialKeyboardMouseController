@@ -5,20 +5,27 @@
 */
 
 #include <Arduino.h>
-#include <limits.h>
+#include <string.h>
 #include <Keyboard.h>
+
+#include "AbsMouse.h"
 #include "serial_symbols.h"
 
 #define _DEBUG
 #include "debug_print.h"
 
 /****************************** Settings ******************************/
-constexpr unsigned long BAUD_RATE = 500000;
+constexpr unsigned long BAUD_RATE = 500000u;
 constexpr unsigned int SERIAL_TIMEOUT = 1000 / ((BAUD_RATE / 8) / MAX_FRAME_LENGTH) + 2;
-constexpr unsigned int RECEIVE_DATA_BUFFER_SIZE = 128;
+constexpr unsigned int RECEIVE_DATA_BUFFER_SIZE = 128u;
 static_assert(RECEIVE_DATA_BUFFER_SIZE >= MAX_FRAME_LENGTH + 2, "Serial receiving buffer must larger than frame size!");
+constexpr unsigned long MAX_RESOLUTION_WIDTH = 7680u;
+constexpr unsigned long MAX_RESOLUTION_HEIGHT = 4320u;
 HardwareSerial& ControlSerial = Serial1;
 
+/****************************** Globals *******************************/
+unsigned long current_resolution_width = 1920u;
+unsigned long current_resolution_height = 1080u;
 
 /*************************** Implementation ***************************/
 inline bool xor_checksum_check(const uint8_t* data, const uint8_t length, const uint8_t value)
@@ -46,6 +53,7 @@ void setup()
     ControlSerial.begin(BAUD_RATE);
     ControlSerial.setTimeout(SERIAL_TIMEOUT);
     Keyboard.begin();
+    AbsMouse.init(current_resolution_width, current_resolution_height, true);
     ControlSerial.println("ControlSerial Initialized!");
 }
 
@@ -88,6 +96,19 @@ void loop()
         {
         case FRAME_TYPE_MOUSE_MOVE:
         {
+            uint16_t x = 0;
+            uint16_t y = 0;
+            memcpy(&x, ptr_data + 1, 2);
+            memcpy(&y, ptr_data + 3, 2);
+            if (x > current_resolution_width || y > current_resolution_height)
+            {
+                debug_print("Coordinates out of range: ");
+                debug_print(x);
+                debug_print(", ");
+                debug_println(y);
+                return;
+            }
+            AbsMouse.move(x, y);
             break;
         }
         case FRAME_TYPE_MOUSE_SCROLL:
@@ -100,6 +121,26 @@ void loop()
         }
         case FRAME_TYPE_MOUSE_RELEASE:
         {
+            break;
+        }
+        case FRAME_TYPE_MOUSE_RESOLUTION:
+        {
+            uint16_t new_width = 0;
+            uint16_t new_height = 0;
+            memcpy(&new_width, ptr_data + 1, 2);
+            memcpy(&new_height, ptr_data + 3, 2);
+            if (new_width == 0 || new_height == 0 || new_width > MAX_RESOLUTION_WIDTH || new_height > MAX_RESOLUTION_HEIGHT)
+            {
+                debug_println("Corrupted/Incorrect resolution values!");
+                return;
+            }
+            current_resolution_width = new_width;
+            current_resolution_height = new_height;
+            AbsMouse.init(new_width, new_height, true);
+            debug_print("Changed resolution to: ");
+            debug_print(new_width);
+            debug_print("x");
+            debug_println(new_height);
             break;
         }
         case FRAME_TYPE_KEY_PRESS:
@@ -128,5 +169,6 @@ void loop()
         }
         // Send loop-back frame
         ControlSerial.write(data_buffer, length + 2);
+        
     }
 }
