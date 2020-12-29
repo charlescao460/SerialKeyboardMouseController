@@ -119,10 +119,23 @@ void loop()
         }
         case FRAME_TYPE_MOUSE_PRESS:
         {
+            const uint8_t key = ptr_data[1];
+            AbsMouse.press(key);
             break;
         }
         case FRAME_TYPE_MOUSE_RELEASE:
         {
+            const uint8_t key = ptr_data[1];
+            if (key == RELEASE_ALL_KEYS)
+            {
+                AbsMouse.release(MOUSE_LEFT);
+                AbsMouse.release(MOUSE_RIGHT);
+                AbsMouse.release(MOUSE_MIDDLE);
+            }
+            else
+            {
+                Keyboard.release(key);
+            }
             break;
         }
         case FRAME_TYPE_MOUSE_RESOLUTION:
