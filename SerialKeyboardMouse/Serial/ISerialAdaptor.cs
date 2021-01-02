@@ -6,10 +6,17 @@ using System.Threading.Tasks;
 
 namespace SerialKeyboardMouse.Serial
 {
-    public interface ISerialAdaptor
+    public interface ISerialAdaptor : IDisposable
     {
+        /// <summary>
+        /// Handler of event when there's new data incoming in serial port
+        /// </summary>
+        /// <param name="sender">This adaptor</param>
         public delegate void SerialDataAvailable(ISerialAdaptor sender);
 
+        /// <summary>
+        /// Raised when there's new data coming
+        /// </summary>
         public event SerialDataAvailable SerialDataAvailableEvent;
 
         /// <summary>
@@ -26,12 +33,11 @@ namespace SerialKeyboardMouse.Serial
         /// <summary>
         /// Asynchronously read bytes from serial
         /// </summary>
-        /// <param name="length">Desired length</param>
         /// <param name="memory">Memory storing reading result</param>
         /// <param name="token">Cancellation Token</param>
         /// <exception cref="OperationCanceledException">When the token is cancelled</exception>
         /// <returns>Actual bytes read</returns>
-        public Task<int> AsyncRead(int length, byte[] memory, CancellationToken token = default);
+        public ValueTask<int> AsyncRead(Memory<byte> memory, CancellationToken token = default);
 
         /// <summary>
         /// Asynchronously write bytes to serial
@@ -40,7 +46,7 @@ namespace SerialKeyboardMouse.Serial
         /// <param name="token">Cancellation Token</param>
         /// <exception cref="OperationCanceledException">When the token is cancelled</exception>
         /// <returns>Async task</returns>
-        public Task AsyncWrite(byte[] memory, CancellationToken token = default);
+        public ValueTask AsyncWrite(Memory<byte> memory, CancellationToken token = default);
 
         /// <summary>
         /// Asynchronously read a byte
@@ -48,7 +54,7 @@ namespace SerialKeyboardMouse.Serial
         /// <param name="token">Cancellation Token</param>
         /// <exception cref="OperationCanceledException">When the token is cancelled</exception>
         /// <returns>Byte read from task</returns>
-        public Task<byte> AsyncReadByte(CancellationToken token = default);
+        public ValueTask<byte> AsyncReadByte(CancellationToken token = default);
 
         /// <summary>
         /// Asynchronously write a byte
@@ -57,7 +63,7 @@ namespace SerialKeyboardMouse.Serial
         /// <param name="token">Cancellation Token</param>
         /// <exception cref="OperationCanceledException">When the token is cancelled</exception>
         /// <returns>Async Task</returns>
-        public Task AsyncWriteByte(byte b, CancellationToken token = default);
+        public ValueTask AsyncWriteByte(byte b, CancellationToken token = default);
 
     }
 }
