@@ -40,7 +40,7 @@ namespace SerialKeyboardMouse.Serial
         /// <summary>
         /// Coordinate of move or resolution type, null otherwise
         /// </summary>
-        public Vector<ushort>? Coordinate { get; }
+        public Tuple<ushort, ushort> Coordinate { get; }
 
         private readonly byte[] _bytes;
 
@@ -61,8 +61,8 @@ namespace SerialKeyboardMouse.Serial
                 }
                 else
                 {
-                    ushort x = Coordinate.Value[0];
-                    ushort y = Coordinate.Value[1];
+                    ushort x = Coordinate.Item1;
+                    ushort y = Coordinate.Item2;
                     if (!BitConverter.TryWriteBytes(new Span<byte>(_bytes, 3, 2), x)
                         || !BitConverter.TryWriteBytes(new Span<byte>(_bytes, 5, 2), y))
                     {
@@ -74,9 +74,9 @@ namespace SerialKeyboardMouse.Serial
             }
         }
 
-        private bool _isKeyType;
+        private readonly bool _isKeyType;
 
-        private SerialCommandFrame(SerialSymbols.FrameType type, byte? key, Vector<ushort>? cord, bool keyType)
+        private SerialCommandFrame(SerialSymbols.FrameType type, byte? key, Tuple<ushort, ushort> cord, bool keyType)
         {
             Type = type;
             Key = key;
@@ -113,7 +113,7 @@ namespace SerialKeyboardMouse.Serial
         /// <param name="cord">Coordinate of this command. First is X, second is Y.</param>
         /// <returns>Constructed frame</returns>
         /// <exception cref="ArgumentException"> If type is not coordinate type.</exception>
-        public static SerialCommandFrame OfCoordinateType(SerialSymbols.FrameType type, Vector<ushort> cord)
+        public static SerialCommandFrame OfCoordinateType(SerialSymbols.FrameType type, Tuple<ushort, ushort> cord)
         {
             if (!SerialSymbols.CoordinateFrameTypes.Contains(type))
             {

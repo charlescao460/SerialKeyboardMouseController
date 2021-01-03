@@ -20,15 +20,35 @@ namespace SerialKeyboardMouse.Serial
         public event SerialDataAvailable SerialDataAvailableEvent;
 
         /// <summary>
-        /// Synchronously read a byte from serial
-        /// </summary>
-        /// <returns>A byte from serial port</returns>
-        public byte ReadByte();
-
-        /// <summary>
         /// Number of available bytes not read
         /// </summary>
         public int AvailableBytes { get; }
+
+        /// <summary>
+        /// Synchronously read a byte from serial
+        /// </summary>
+        /// <param name="timeout">If read timeout</param>
+        /// <returns>A byte from serial port</returns>
+        public byte ReadByte(out bool timeout);
+
+        /// <summary>
+        /// Synchronously write a byte to serial
+        /// </summary>
+        /// <param name="b">Byte to write.</param>
+        public void WriteByte(byte b);
+
+        /// <summary>
+        /// Synchronously read bytes from serial
+        /// </summary>
+        /// <param name="memory">Memory storing reading result</param>
+        /// <returns>Actual bytes read</returns>
+        public int Read(Memory<byte> memory);
+
+        /// <summary>
+        /// Synchronously write bytes to serial
+        /// </summary>
+        /// <param name="memory">Memory containing bytes to write</param>
+        public void Write(Memory<byte> memory);
 
         /// <summary>
         /// Asynchronously read bytes from serial

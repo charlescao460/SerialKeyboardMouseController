@@ -8,6 +8,7 @@ namespace SerialKeyboardMouse.Serial
     public class WindowsSerialAdaptor : ISerialAdaptor
     {
         private const int ReadTimeout = 10;
+        private const int WriteTimeout = 10000;
         private readonly SerialPort _serialPort;
 
         public WindowsSerialAdaptor(string portName)
@@ -16,18 +17,43 @@ namespace SerialKeyboardMouse.Serial
             _serialPort.Open();
             _serialPort.BaseStream.ReadTimeout = ReadTimeout;
             _serialPort.ReadTimeout = ReadTimeout;
+            _serialPort.BaseStream.WriteTimeout = WriteTimeout;
+            _serialPort.WriteTimeout = WriteTimeout;
             _serialPort.DataReceived += (o, e) => { SerialDataAvailableEvent?.Invoke(this); };
         }
 
         public event ISerialAdaptor.SerialDataAvailable SerialDataAvailableEvent;
 
-        public byte ReadByte()
+        public byte ReadByte(out bool timeout)
         {
-            int oldTimeout = _serialPort.ReadTimeout;
-            _serialPort.ReadTimeout = SerialPort.InfiniteTimeout;
-            byte ret = (byte)_serialPort.ReadByte();
-            _serialPort.ReadTimeout = oldTimeout;
+            byte ret = 0;
+            try
+            {
+                ret = (byte)_serialPort.ReadByte();
+            }
+            catch (TimeoutException)
+            {
+                timeout = true;
+                return ret;
+            }
+            timeout = false;
             return ret;
+        }
+
+        public void WriteByte(byte b)
+        {
+            Span<byte> toSend = stackalloc byte[1];
+            _serialPort.BaseStream.Write(toSend);
+        }
+
+        public int Read(Memory<byte> memory)
+        {
+            return _serialPort.BaseStream.Read(memory.Span);
+        }
+
+        public void Write(Memory<byte> memory)
+        {
+            _serialPort.BaseStream.Write(memory.Span);
         }
 
         public int AvailableBytes => (int)_serialPort.BaseStream.Length;

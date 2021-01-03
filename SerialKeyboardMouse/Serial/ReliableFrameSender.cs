@@ -61,6 +61,7 @@ namespace SerialKeyboardMouse.Serial
             _senderTasks = new ConcurrentQueue<SenderTask>();
             _random = new Random();
             _thread = new Thread(new ThreadStart(ThreadLoop));
+            _thread.Priority = ThreadPriority.Highest;
             _thread.Start();
         }
 
@@ -131,16 +132,17 @@ namespace SerialKeyboardMouse.Serial
                     for (int i = 0; i < NumMaxRetries; ++i)
                     {
                         // Send command
-                        _serial.AsyncWrite(toSend.BytesToSend).GetAwaiter().GetResult();
+                        _serial.Write(toSend.BytesToSend);
 
                         // Start timer
                         stopwatch.Restart();
 
                         // Wait loop back
                         int index = 0;
-                        for (byte c = _serial.AsyncReadByte().GetAwaiter().GetResult();
+                        for (byte
+                            c = _serial.ReadByte(out bool _); // We don't care timeout here, and it shouldn't happen
                             stopwatch.ElapsedMilliseconds <= CommandTimeout;
-                            c = _serial.AsyncReadByte().GetAwaiter().GetResult())
+                            c = _serial.ReadByte(out _))
                         {
                             if (c == desiredLoopback[index])
                             {
@@ -154,9 +156,12 @@ namespace SerialKeyboardMouse.Serial
                                 index = 0;
                             }
                         }
+
                         Thread.Sleep(RetryInterval + _random.Next(-20, 20));
                     }
-                    toSend.AwaitSource.SetException(new SerialDeviceException($"Command failed or timeout after {NumMaxRetries} retries."));
+
+                    toSend.AwaitSource.SetException(
+                        new SerialDeviceException($"Command failed or timeout after {NumMaxRetries} retries."));
                     continue;
                 onSuccessful:
                     toSend.AwaitSource.SetResult();
@@ -183,7 +188,7 @@ namespace SerialKeyboardMouse.Serial
                 return false;
             }
 
-            SerialSymbols.FrameType type = (SerialSymbols.FrameType)span[1];
+            SerialSymbols.FrameType type = (SerialSymbols.FrameType)span[2];
             if (!SerialSymbols.ValidFrameTypes.Contains(type))
             {
                 return false;
