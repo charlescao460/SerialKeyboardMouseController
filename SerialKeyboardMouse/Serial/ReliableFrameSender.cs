@@ -15,7 +15,7 @@ namespace SerialKeyboardMouse.Serial
     /// <see cref="SerialDeviceException"/>. If a frame was received by the device,
     /// device will loop it back.
     /// </summary>
-    public class ReliableFrameSender
+    public class ReliableFrameSender : IDisposable
     {
         /// <summary>
         /// Max number of retries when timeout or unsuccessful
@@ -47,7 +47,7 @@ namespace SerialKeyboardMouse.Serial
         private readonly EventWaitHandle _threadTrigger;
 
         private volatile bool _shouldExit;
-
+        private bool disposedValue;
         private readonly ConcurrentQueue<SenderTask> _senderTasks;
 
         private readonly Random _random;
@@ -226,5 +226,29 @@ namespace SerialKeyboardMouse.Serial
             }
         }
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _serial.Dispose();
+                    _threadTrigger.Dispose();
+                    _shouldExit = true;
+                    _threadTrigger.Set();
+                    if (!_thread.Join(1000))
+                    {
+                        throw new Exception("Failed to terminate serial sender thread.");
+                    }
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 }

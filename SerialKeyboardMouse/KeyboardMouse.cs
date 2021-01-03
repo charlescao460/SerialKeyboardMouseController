@@ -8,9 +8,10 @@ using SerialKeyboardMouse.Serial;
 
 namespace SerialKeyboardMouse
 {
-    public class KeyboardMouse
+    public class KeyboardMouse : IDisposable
     {
         private readonly ReliableFrameSender _sender;
+        private bool disposedValue;
 
         public int MouseResolutionWidth { get; private set; }
 
@@ -29,6 +30,24 @@ namespace SerialKeyboardMouse
                 = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseResolution,
                     new Tuple<ushort, ushort>((ushort)width, (ushort)height));
             return _sender.SendFrame(frame.Bytes);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _sender.Dispose();
+                }
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }
