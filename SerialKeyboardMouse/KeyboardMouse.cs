@@ -11,7 +11,7 @@ namespace SerialKeyboardMouse
     public class KeyboardMouse : IDisposable
     {
         private readonly ReliableFrameSender _sender;
-        private bool disposedValue;
+        private bool _disposedValue;
 
         public int MouseResolutionWidth { get; private set; }
 
@@ -34,13 +34,13 @@ namespace SerialKeyboardMouse
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!_disposedValue)
             {
                 if (disposing)
                 {
                     _sender.Dispose();
                 }
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 

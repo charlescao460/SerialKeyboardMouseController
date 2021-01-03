@@ -47,7 +47,7 @@ namespace SerialKeyboardMouse.Serial
         private readonly EventWaitHandle _threadTrigger;
 
         private volatile bool _shouldExit;
-        private bool disposedValue;
+        private bool _disposedValue;
         private readonly ConcurrentQueue<SenderTask> _senderTasks;
 
         private readonly Random _random;
@@ -228,7 +228,7 @@ namespace SerialKeyboardMouse.Serial
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!_disposedValue)
             {
                 if (disposing)
                 {
@@ -241,7 +241,7 @@ namespace SerialKeyboardMouse.Serial
                         throw new Exception("Failed to terminate serial sender thread.");
                     }
                 }
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 
