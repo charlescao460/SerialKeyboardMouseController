@@ -50,8 +50,9 @@ private:
 public:
     AbsMouse_(void);
     void init(uint16_t width = 32767, uint16_t height = 32767, bool autoReport = true);
-    void report(void);
-    void move(uint16_t x, uint16_t y, int8_t scroll = 0);
+    void report(void) const;
+    void move(uint16_t x, uint16_t y);
+    void scroll(int8_t wheel);
     void press(uint8_t b = MOUSE_LEFT);
     void release(uint8_t b = MOUSE_LEFT);
 };

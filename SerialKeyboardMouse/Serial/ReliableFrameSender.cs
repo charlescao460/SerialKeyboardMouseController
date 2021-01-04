@@ -30,12 +30,12 @@ namespace SerialKeyboardMouse.Serial
         /// <summary>
         /// Timeout when waiting for command loop back. Unit in ms.
         /// </summary>
-        private const int CommandTimeout = 10;
+        private const int CommandTimeout = 20;
 
         /// <summary>
         /// Maximum number of frame pending for send.
         /// </summary>
-        private const int MaxNumQueuedTask = 20;
+        private const int MaxNumQueuedTask = 50;
 
         private readonly ISerialAdaptor _serial;
 
@@ -79,7 +79,7 @@ namespace SerialKeyboardMouse.Serial
 
             if (_senderTasks.Count > MaxNumQueuedTask)
             {
-                throw new SerialDeviceException("Too many frame queued!");
+                throw new SerialDeviceException($"Too many frames ({_senderTasks.Count}) queued!");
             }
 
             SenderTask task = new SenderTask(bytes);
@@ -104,11 +104,16 @@ namespace SerialKeyboardMouse.Serial
         {
             Stopwatch stopwatch = new Stopwatch();
             byte[] desiredLoopback = new byte[SerialSymbols.MaxFrameLength];
+            Process currentProcess = Process.GetCurrentProcess();
+            var oldPriority = currentProcess.PriorityClass;
+            bool isHighPriority = false;
             while (true)
             {
                 // Get next task
                 if (!_senderTasks.TryDequeue(out SenderTask toSend))
                 {
+                    currentProcess.PriorityClass = oldPriority;
+                    isHighPriority = false;
                     _threadTrigger.WaitOne();
                 }
 
@@ -120,6 +125,12 @@ namespace SerialKeyboardMouse.Serial
                 if (toSend == null)
                 {
                     continue;
+                }
+
+                if (!isHighPriority)
+                {
+                    currentProcess.PriorityClass = ProcessPriorityClass.RealTime;
+                    isHighPriority = true;
                 }
 
                 try
@@ -158,6 +169,7 @@ namespace SerialKeyboardMouse.Serial
                         }
 
                         Thread.Sleep(RetryInterval + _random.Next(-20, 20));
+                        _serial.DiscardReadBuffer();
                     }
 
                     toSend.AwaitSource.SetException(

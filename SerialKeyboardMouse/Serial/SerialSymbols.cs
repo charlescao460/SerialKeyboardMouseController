@@ -34,6 +34,13 @@ namespace SerialKeyboardMouse.Serial
 
         public const int ReleaseAllKeys = 0x00;
 
+        public enum MouseButton
+        {
+            Left = 0x01,
+            Right = 0x02,
+            Middle = 0x04
+        }
+
         /// <summary>
         /// Set of all key/value frame type. (E.g. Scroll or key press)
         /// </summary>
@@ -96,9 +103,6 @@ namespace SerialKeyboardMouse.Serial
         {
             return XorChecksum(memory) == desired;
         }
-
-
-
     }
 
 }

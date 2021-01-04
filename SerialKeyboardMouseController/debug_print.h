@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+//#define _DEBUG
+
 #ifdef _DEBUG
 
 #define debug_print(arg) do{ Serial.print(arg); }while(0);

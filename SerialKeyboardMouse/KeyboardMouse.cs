@@ -32,6 +32,64 @@ namespace SerialKeyboardMouse
             return _sender.SendFrame(frame.Bytes);
         }
 
+        public Task MoveMouseToCoordinate(int x, int y)
+        {
+            if (x < 0 || y < 0 || x > MouseResolutionWidth || y > MouseResolutionHeight)
+            {
+                throw new ArgumentOutOfRangeException($"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
+            }
+            SerialCommandFrame frame
+                = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseMove,
+                    new Tuple<ushort, ushort>((ushort)x, (ushort)y));
+            return _sender.SendFrame(frame.Bytes);
+        }
+
+        public Task MouseScroll(sbyte value)
+        {
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseScroll, (byte)value);
+            return _sender.SendFrame(frame.Bytes);
+        }
+
+        public Task MousePressButton(SerialSymbols.MouseButton button)
+        {
+            CheckMouseButton(button);
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MousePress, (byte)button);
+            return _sender.SendFrame(frame.Bytes);
+        }
+
+        public Task MouseReleaseButton(SerialSymbols.MouseButton button)
+        {
+            CheckMouseButton(button);
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, (byte)button);
+            return _sender.SendFrame(frame.Bytes);
+        }
+
+        public Task MouseReleaseAllButtons()
+        {
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, SerialSymbols.ReleaseAllKeys);
+            return _sender.SendFrame(frame.Bytes);
+        }
+
+        public Task KeyboardPress(byte key)
+        {
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardPress, key);
+            return _sender.SendFrame(frame.Bytes);
+        }
+
+        public Task KeyboardRelease(byte key)
+        {
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, key);
+            return _sender.SendFrame(frame.Bytes);
+        }
+
+        private static void CheckMouseButton(SerialSymbols.MouseButton button)
+        {
+            if (!Enum.IsDefined(button))
+            {
+                throw new ArgumentException($"Unknown type of mouse button {button}.");
+            }
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposedValue)

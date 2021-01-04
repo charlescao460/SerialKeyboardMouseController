@@ -10,8 +10,6 @@
 
 #include "AbsMouse.h"
 #include "serial_symbols.h"
-
-#define _DEBUG
 #include "debug_print.h"
 
 /****************************** Settings ******************************/
@@ -114,7 +112,7 @@ void loop()
         case FRAME_TYPE_MOUSE_SCROLL:
         {
             const int8_t step = static_cast<int8_t>(ptr_data[1]);
-            AbsMouse.move(0, 0, step);
+            AbsMouse.scroll(step);
             break;
         }
         case FRAME_TYPE_MOUSE_PRESS:
@@ -128,13 +126,11 @@ void loop()
             const uint8_t key = ptr_data[1];
             if (key == RELEASE_ALL_KEYS)
             {
-                AbsMouse.release(MOUSE_LEFT);
-                AbsMouse.release(MOUSE_RIGHT);
-                AbsMouse.release(MOUSE_MIDDLE);
+                AbsMouse.release(MOUSE_LEFT | MOUSE_RIGHT | MOUSE_MIDDLE);
             }
             else
             {
-                Keyboard.release(key);
+                AbsMouse.release(key);
             }
             break;
         }

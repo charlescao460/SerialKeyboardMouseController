@@ -82,6 +82,12 @@ namespace SerialKeyboardMouse.Serial
             await AsyncWrite(arr, token).ConfigureAwait(false);
         }
 
+        public void DiscardReadBuffer()
+        {
+            _serialPort.BaseStream.Flush();
+            _serialPort.DiscardInBuffer();
+        }
+
         public void Dispose()
         {
             _serialPort?.Dispose();

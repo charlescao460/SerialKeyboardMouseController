@@ -85,5 +85,10 @@ namespace SerialKeyboardMouse.Serial
         /// <returns>Async Task</returns>
         public ValueTask AsyncWriteByte(byte b, CancellationToken token = default);
 
+        /// <summary>
+        /// Discard all un-read contents in receiving buffer.
+        /// </summary>
+        public void DiscardReadBuffer();
+
     }
 }
