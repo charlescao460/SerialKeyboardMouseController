@@ -5,7 +5,7 @@ A software-controlled hardware USB HID keyboard &amp; mouse for everyone
 * [Build Hardware](#build-hardware)
 * [Software Deployment](#software-deployment)
 * [Notes](#notes)
-* [Serial Protocol](serial-protocol)
+* [Serial Protocol](#serial-protocol)
 * [License](#license)
 
 ## Purpose
