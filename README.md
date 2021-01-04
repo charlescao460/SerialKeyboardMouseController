@@ -17,6 +17,15 @@ This is an Arduino project with a .NET Core library allowed you to control a **r
 2. Connect Arduino **GND** -> UART-USB bridge **GND** (VCC is not necessarily connected)
 3. Connect Arduino **TX** -> UART-USB bridge **RX**
 4. Connect Arduino **RX** -> UART-USB bridge **TX**
+5. Upload [SerialKeyboardMouseController.ino](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/SerialKeyboardMouseController/SerialKeyboardMouseController.ino) to your Arduino board.
+6. Connect Arduino to target computer, connect UART-USB bridge to controller computer.
+
+## Software Deployment
+[SerialKeyboardMouse](https://github.com/charlescao460/SerialKeyboardMouseController/tree/main/SerialKeyboardMouse) is a .NET Core 5.0 library. 
+It is cross-platform, with serial driver supported by .NET's `System.IO.Ports` package. So you can deploy it to a embedded Linux device, implementing an Edge AI game-bot.
+
+A demo program [SerialKeyboardMouseConsole](https://github.com/charlescao460/SerialKeyboardMouseController/tree/main/SerialKeyboardMouseConsole) was written in WinForms, 
+which will transfer all received mouse & keyboard events to the target.
 
 
 ## Notes
