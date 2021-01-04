@@ -49,13 +49,13 @@ Serial protocol is detailed in [serial_symbols.h](https://github.com/charlescao4
 
 ![](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/Pictures/Oscilloscope.png)
 
-The image showed above is an example of transmitting packets when <Space> was pressed on Arduino Micro.  
+The image showed above is an example of transmitting packets when `<Space>` was pressed on Arduino Micro.  
 
 The packet starts with `0xAB`, followed by length `0x03`, indicating that there are 3 bytes remaining in this packet. 
 
 `0xBB` means ` FRAME_TYPE_KEY_PRESS`. 
 
-`0x2C` is the HID scan code of key <Space>. 
+`0x2C` is the HID scan code of key `<Space>`. 
 
 The last byte `0x97` is the check sum of previous 2 bytes (starting after length). 
 
