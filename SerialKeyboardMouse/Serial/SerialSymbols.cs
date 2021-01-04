@@ -14,7 +14,7 @@ namespace SerialKeyboardMouse.Serial
 
         public const int MinFrameLength = 5; // 0xAB <Length> <Type> <Value> <Checksum>
 
-        public const int MaxDataLength = 6;
+        public const int MaxDataLength = 6; // Coordinate type, 4-byte coordinates + <Type> + <Checksum>
 
         public const int MaxFrameLength = MaxDataLength + 2;
 
@@ -34,6 +34,7 @@ namespace SerialKeyboardMouse.Serial
 
         public const int ReleaseAllKeys = 0x00;
 
+        [Flags]
         public enum MouseButton
         {
             Left = 0x01,

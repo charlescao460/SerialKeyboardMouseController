@@ -22,8 +22,20 @@ namespace SerialKeyboardMouse
             _sender = new ReliableFrameSender(serial);
         }
 
+        /// <summary>
+        /// Set the absolute mouse's resolution.
+        /// Note that in firmware, it has a limitation of 8K resolution.
+        /// </summary>
+        /// <param name="width">Width of resolution.</param>
+        /// <param name="height">Height of resolution. </param>
+        /// <exception cref="ArgumentException">If supplied with non-positive values</exception>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task SetMouseResolution(int width, int height)
         {
+            if (width <= 0 || height <= 0)
+            {
+                throw new ArgumentException("Resolution values cannot be negative!");
+            }
             MouseResolutionWidth = width;
             MouseResolutionHeight = height;
             SerialCommandFrame frame
@@ -32,9 +44,16 @@ namespace SerialKeyboardMouse
             return _sender.SendFrame(frame.Bytes);
         }
 
+        /// <summary>
+        /// Move the absolute mouse to desired coordinate.
+        /// </summary>
+        /// <param name="x">Coordinate X</param>
+        /// <param name="y">Coordinate Y </param>
+        /// <exception cref="ArgumentException">If supplied with non-positive values or out of resolution range.</exception>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task MoveMouseToCoordinate(int x, int y)
         {
-            if (x < 0 || y < 0 || x > MouseResolutionWidth || y > MouseResolutionHeight)
+            if (x <= 0 || y <= 0 || x > MouseResolutionWidth || y > MouseResolutionHeight)
             {
                 throw new ArgumentOutOfRangeException($"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
             }
@@ -44,12 +63,25 @@ namespace SerialKeyboardMouse
             return _sender.SendFrame(frame.Bytes);
         }
 
+        /// <summary>
+        /// Scroll the wheel
+        /// </summary>
+        /// <param name="value">Wheel delta</param>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task MouseScroll(sbyte value)
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseScroll, (byte)value);
             return _sender.SendFrame(frame.Bytes);
         }
 
+        /// <summary>
+        /// Press mouse's button.
+        /// </summary>
+        /// <param name="button"> Button to press.</param>
+        /// <see cref="SerialSymbols.MouseButton"/>
+        /// <seealso cref="MouseReleaseButton"/>
+        /// <seealso cref="MouseReleaseAllButtons"/>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task MousePressButton(SerialSymbols.MouseButton button)
         {
             CheckMouseButton(button);
@@ -57,6 +89,14 @@ namespace SerialKeyboardMouse
             return _sender.SendFrame(frame.Bytes);
         }
 
+        /// <summary>
+        /// Release mouse's button.
+        /// </summary>
+        /// <param name="button"> Button to release.</param>
+        /// <see cref="SerialSymbols.MouseButton"/>
+        /// <seealso cref="MousePressButton"/>
+        /// <seealso cref="MouseReleaseAllButtons"/>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task MouseReleaseButton(SerialSymbols.MouseButton button)
         {
             CheckMouseButton(button);
@@ -64,24 +104,46 @@ namespace SerialKeyboardMouse
             return _sender.SendFrame(frame.Bytes);
         }
 
+        /// <summary>
+        /// Release all mouse's buttons.
+        /// </summary>
+        /// <see cref="SerialSymbols.MouseButton"/>
+        /// <seealso cref="MousePressButton"/>
+        /// <seealso cref="MouseReleaseButton"/>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task MouseReleaseAllButtons()
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, SerialSymbols.ReleaseAllKeys);
             return _sender.SendFrame(frame.Bytes);
         }
 
+        /// <summary>
+        /// Press the specific key. 
+        /// </summary>
+        /// <param name="key">The HID scan code combined with modifier.</param>
+        /// <seealso cref="KeyboardRelease"/>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task KeyboardPress(byte key)
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardPress, key);
             return _sender.SendFrame(frame.Bytes);
         }
 
+        /// <summary>
+        /// Release the specific key. 
+        /// </summary>
+        /// <param name="key">The HID scan code combined with modifier.</param>
+        /// <seealso cref="KeyboardPress"/>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task KeyboardRelease(byte key)
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, key);
             return _sender.SendFrame(frame.Bytes);
         }
 
+        /// <summary>
+        /// Helper function to check mouse button and throw exception.
+        /// </summary>
         private static void CheckMouseButton(SerialSymbols.MouseButton button)
         {
             if (!Enum.IsDefined(button))

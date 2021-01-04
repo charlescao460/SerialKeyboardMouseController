@@ -78,7 +78,7 @@ void AbsMouse_::init(uint16_t width, uint16_t height, bool autoReport)
     _autoReport = autoReport;
 }
 
-void AbsMouse_::report(void) const
+void AbsMouse_::report(void)
 {
     uint8_t buffer[6];
     buffer[0] = _buttons;
@@ -88,7 +88,7 @@ void AbsMouse_::report(void) const
     buffer[4] = (_y >> 8) & 0xFF;
     buffer[5] = _scroll;
     HID().SendReport(1, buffer, 6);
-    debug_println("HID Mouse Report.");
+    _scroll = 0;
 }
 
 void AbsMouse_::move(uint16_t x, uint16_t y)
