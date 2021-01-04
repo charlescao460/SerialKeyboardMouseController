@@ -15,7 +15,7 @@ namespace SerialKeyboardMouse.Serial
     /// <see cref="SerialDeviceException"/>. If a frame was received by the device,
     /// device will loop it back.
     /// </summary>
-    public class ReliableFrameSender : IDisposable
+    internal class ReliableFrameSender : IDisposable
     {
         /// <summary>
         /// Max number of retries when timeout or unsuccessful

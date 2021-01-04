@@ -12,7 +12,7 @@ namespace SerialKeyboardMouse
     {
         private readonly ReliableFrameSender _sender;
         private bool _disposedValue;
-        private bool[] _keyboardKeyStates;
+        private readonly bool[] _keyboardKeyStates;
 
         public int MouseResolutionWidth { get; private set; }
 

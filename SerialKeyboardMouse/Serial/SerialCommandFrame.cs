@@ -4,7 +4,7 @@ using System.Numerics;
 
 namespace SerialKeyboardMouse.Serial
 {
-    public class SerialCommandFrame
+    internal class SerialCommandFrame
     {
         private static readonly ArrayPool<byte> FrameArrayPool
             = ArrayPool<byte>.Create(SerialSymbols.MaxFrameLength, 1000);
