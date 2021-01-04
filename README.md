@@ -1,6 +1,13 @@
 # SerialKeyboardMouseController
 A software-controlled hardware USB HID keyboard &amp; mouse for everyone
 
+* [Purpose](#purpose)
+* [Build Hardware](#build-hardware)
+* [Software Deployment](#software-deployment)
+* [Notes](#notes)
+* [Serial Protocol](serial-protocol)
+* [License](#license)
+
 ## Purpose
 This is an Arduino project with a .NET Core library allowed you to control a **real** hardware mouse &amp; keyboard without being detected by any anti-cheat or protection software. Since this system is using a real USB HID device, it’s very hard to distinguish it from normal mouses and keyboards.
 
@@ -32,6 +39,31 @@ which will transfer all received mouse & keyboard events to the target.
 Some protection software will check USB VID and PID, to avoid being detected, consider changing them in Arduino’s [bootloader](https://github.com/arduino/ArduinoCore-avr/tree/master/bootloaders). Most operation systems will have a general driver for HID devices, so changing VID & PID won’t involve driver issue.
 
 Also, be aware of [Keystroke dynamics](https://en.wikipedia.org/wiki/Keystroke_dynamics). Researchers have proven that each individual has a unique pattern of typing. So,  theoretically a machine learning pattern-recognition algorithm can detect suspicious keyboard operation. Try to add some random delays between each HID report. If you send commands too fast, it will definitely trigger the anti-bot protection. 
+
+## Serial Protocol
+USB-related communication is reliable guaranteed by USB standard. Therefore, the only uncertainty is UART transmission. The serial communication is done by transmitting packets.
+
+Packets are variable-length, starting with preamble `0xAB`, followed by 1-byte length, after length is body, and the last byte is XOR checksum. If the Arduino device successfully received the packet and sent desired HID report, it will loop back the packet (i.e., send a packet with exact contents). If there’s anything wrong, it won’t send anything back. Controller library will then detect this timeout and try again. 
+
+Serial protocol is detailed in [serial_symbols.h](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/SerialKeyboardMouseController/serial_symbols.h).
+
+![](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/Pictures/Oscilloscope.png)
+
+The image showed above is an example of transmitting packets when <Space> was pressed on Arduino Micro.  
+
+The packet starts with `0xAB`, followed by length `0x03`, indicating that there are 3 bytes remaining in this packet. 
+
+`0xBB` means ` FRAME_TYPE_KEY_PRESS`. 
+
+`0x2C` is the HID scan code of key <Space>. 
+
+The last byte `0x97` is the check sum of previous 2 bytes (starting after length). 
+
+After the Arduino successfully sent HID report, it sent an exact same packet back, so the software knows it succeeded. 
+
+As shown in oscilloscope, even with a relative low-speed 16MHz Atmega32U4, the packet processing and USB reports are nearly done immediately. The main bottleneck is UART, so the higher baud rate is better. Besides, since Arduino Micro has only 32 bytes serial input buffer, it will be easily overflowed by frequent requests. 
+
+
 
 ## License
 **GNU Lesser General Public License** (LGPL)
