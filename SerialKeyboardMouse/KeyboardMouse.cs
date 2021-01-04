@@ -43,7 +43,7 @@ namespace SerialKeyboardMouse
             SerialCommandFrame frame
                 = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseResolution,
                     new Tuple<ushort, ushort>((ushort)width, (ushort)height));
-            return _sender.SendFrame(frame.Bytes);
+            return _sender.SendFrame(frame);
         }
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace SerialKeyboardMouse
             SerialCommandFrame frame
                 = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseMove,
                     new Tuple<ushort, ushort>((ushort)x, (ushort)y));
-            return _sender.SendFrame(frame.Bytes);
+            return _sender.SendFrame(frame);
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace SerialKeyboardMouse
         public Task MouseScroll(sbyte value)
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseScroll, (byte)value);
-            return _sender.SendFrame(frame.Bytes);
+            return _sender.SendFrame(frame);
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace SerialKeyboardMouse
         {
             CheckMouseButton(button);
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MousePress, (byte)button);
-            return _sender.SendFrame(frame.Bytes);
+            return _sender.SendFrame(frame);
         }
 
         /// <summary>
@@ -103,7 +103,7 @@ namespace SerialKeyboardMouse
         {
             CheckMouseButton(button);
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, (byte)button);
-            return _sender.SendFrame(frame.Bytes);
+            return _sender.SendFrame(frame);
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace SerialKeyboardMouse
         public Task MouseReleaseAllButtons()
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, SerialSymbols.ReleaseAllKeys);
-            return _sender.SendFrame(frame.Bytes);
+            return _sender.SendFrame(frame);
         }
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace SerialKeyboardMouse
         public Task KeyboardPress(byte key)
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardPress, key);
-            return _sender.SendFrame(frame.Bytes).ContinueWith(task => _keyboardKeyStates[key] = true);
+            return _sender.SendFrame(frame).ContinueWith(task => _keyboardKeyStates[key] = true);
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace SerialKeyboardMouse
         public Task KeyboardRelease(byte key)
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, key);
-            return _sender.SendFrame(frame.Bytes).ContinueWith(task => _keyboardKeyStates[key] = false);
+            return _sender.SendFrame(frame).ContinueWith(task => _keyboardKeyStates[key] = false);
         }
 
         /// <summary>
@@ -157,7 +157,7 @@ namespace SerialKeyboardMouse
         public Task KeyboardReleaseAll()
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, SerialSymbols.ReleaseAllKeys);
-            return _sender.SendFrame(frame.Bytes).ContinueWith(task => Array.Fill(_keyboardKeyStates, false));
+            return _sender.SendFrame(frame).ContinueWith(task => Array.Fill(_keyboardKeyStates, false));
         }
 
         /// <summary>

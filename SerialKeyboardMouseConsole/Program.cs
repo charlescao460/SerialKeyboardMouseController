@@ -207,6 +207,11 @@ namespace SerialKeyboardMouseConsole
             Program._options = options;
             _form = CreateForm(options.Width, options.Height);
 
+            _form.FormClosed += (s, e) =>
+            {
+                _keyboardMouse.Dispose();
+                System.Environment.Exit(0);
+            };
 
             Console.CancelKeyPress += (s, e) =>
             {
@@ -222,8 +227,8 @@ namespace SerialKeyboardMouseConsole
             _form.KeyDown += (s, e) => { KeyboardPressReleaseHelper(e, true); };
             _form.PreviewKeyDown += (s, e) => { e.IsInputKey = true; };
             _form.KeyUp += (s, e) => { KeyboardPressReleaseHelper(e, false); };
-            MouseThrottleStopwatch.Start();
 
+            MouseThrottleStopwatch.Start();
             _form.ShowDialog();
 
             return 0;

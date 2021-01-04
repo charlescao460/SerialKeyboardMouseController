@@ -52,6 +52,16 @@ namespace SerialKeyboardMouse.Serial
 
         private readonly Random _random;
 
+        /// <summary>
+        /// Enable the delay between retries of all key/button operations. Default is true.
+        /// Set this can make sure our HID report interval is big enough.
+        /// </summary>
+        public bool EnableKeyRetryDelay { get; set; } = true;
+
+        /// <summary>
+        /// Enable the delay between retries of mouse move operations. Default is false
+        /// </summary>
+        public bool EnableMouseMoveRetryDelay { get; set; } = false;
 
         public ReliableFrameSender(ISerialAdaptor serial)
         {
@@ -70,19 +80,20 @@ namespace SerialKeyboardMouse.Serial
         /// </summary>
         /// <param name="bytes">Bytes to sent</param>
         /// <exception cref="SerialDeviceException"> If timeout or exceed maximum number of retries.</exception>
-        public async Task SendFrame(Memory<byte> bytes)
+        public async Task SendFrame(SerialCommandFrame frame)
         {
-            if (!ValidFrame(bytes))
-            {
-                throw new ArgumentException("Invalid frame bytes!");
-            }
-
             if (_senderTasks.Count > MaxNumQueuedTask)
             {
                 throw new SerialDeviceException($"Too many frames ({_senderTasks.Count}) queued!");
             }
 
-            SenderTask task = new SenderTask(bytes);
+            SenderTask task = new SenderTask(frame);
+
+            if (!ValidFrameBytes(task.BytesToSend))
+            {
+                throw new ArgumentException("Invalid frame bytes!");
+            }
+
             _senderTasks.Enqueue(task);
             _threadTrigger.Set();
 
@@ -96,7 +107,7 @@ namespace SerialKeyboardMouse.Serial
             }
             catch (Exception e)
             {
-                throw new SerialDeviceException("Exception in serial sender sender thread", e);
+                throw new SerialDeviceException("Exception in serial sender thread", e);
             }
         }
 
@@ -106,6 +117,7 @@ namespace SerialKeyboardMouse.Serial
             byte[] desiredLoopback = new byte[SerialSymbols.MaxFrameLength];
             Process currentProcess = Process.GetCurrentProcess();
             var oldPriority = currentProcess.PriorityClass;
+            currentProcess.PriorityClass = ProcessPriorityClass.AboveNormal;
             bool isHighPriority = false;
             while (true)
             {
@@ -119,6 +131,7 @@ namespace SerialKeyboardMouse.Serial
 
                 if (_shouldExit)
                 {
+                    currentProcess.PriorityClass = oldPriority;
                     return; // Terminate thread
                 }
 
@@ -129,7 +142,6 @@ namespace SerialKeyboardMouse.Serial
 
                 if (!isHighPriority)
                 {
-                    currentProcess.PriorityClass = ProcessPriorityClass.RealTime;
                     isHighPriority = true;
                 }
 
@@ -167,8 +179,13 @@ namespace SerialKeyboardMouse.Serial
                                 index = 0;
                             }
                         }
-
-                        Thread.Sleep(RetryInterval + _random.Next(-20, 20));
+                        // Retry delay if needed
+                        if ((toSend.Original.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
+                            || (toSend.Original.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
+                        {
+                            Thread.Sleep(RetryInterval + _random.Next(-20, 20));
+                        }
+                        // Clean serial buffer
                         _serial.DiscardReadBuffer();
                     }
 
@@ -186,7 +203,7 @@ namespace SerialKeyboardMouse.Serial
             }
         }
 
-        private static bool ValidFrame(Memory<byte> memory)
+        private static bool ValidFrameBytes(Memory<byte> memory)
         {
             Span<byte> span = memory.Span;
             int length = span.Length;
@@ -231,10 +248,13 @@ namespace SerialKeyboardMouse.Serial
 
             public Memory<byte> BytesToSend { get; }
 
-            public SenderTask(Memory<byte> bytes)
+            public SerialCommandFrame Original { get; }
+
+            public SenderTask(SerialCommandFrame frame)
             {
                 AwaitSource = new TaskCompletionSource();
-                BytesToSend = bytes;
+                Original = frame;
+                BytesToSend = frame.Bytes;
             }
         }
 
