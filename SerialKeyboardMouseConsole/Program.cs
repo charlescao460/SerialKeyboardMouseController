@@ -193,7 +193,7 @@ namespace SerialKeyboardMouseConsole
             ISerialAdaptor serial;
             try
             {
-                serial = new WindowsSerialAdaptor(options.ComPort);
+                serial = new DotNetSerialAdaptor(options.ComPort);
             }
             catch (Exception)
             {
