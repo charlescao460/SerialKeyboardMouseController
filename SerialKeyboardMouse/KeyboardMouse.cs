@@ -12,6 +12,7 @@ namespace SerialKeyboardMouse
     {
         private readonly ReliableFrameSender _sender;
         private bool _disposedValue;
+        private bool[] _keyboardKeyStates;
 
         public int MouseResolutionWidth { get; private set; }
 
@@ -20,6 +21,7 @@ namespace SerialKeyboardMouse
         public KeyboardMouse(ISerialAdaptor serial)
         {
             _sender = new ReliableFrameSender(serial);
+            _keyboardKeyStates = new bool[255];
         }
 
         /// <summary>
@@ -120,25 +122,50 @@ namespace SerialKeyboardMouse
         /// <summary>
         /// Press the specific key. 
         /// </summary>
-        /// <param name="key">The HID scan code combined with modifier.</param>
+        /// <param name="key">The HID usage id combined with modifiers.</param>
         /// <seealso cref="KeyboardRelease"/>
+        /// <seealso cref="KeyboardReleaseAll"/>
+        /// <seealso cref="HidHelper.GetHidUsageFromPs2Set1"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task KeyboardPress(byte key)
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardPress, key);
-            return _sender.SendFrame(frame.Bytes);
+            return _sender.SendFrame(frame.Bytes).ContinueWith(task => _keyboardKeyStates[key] = true);
         }
 
         /// <summary>
         /// Release the specific key. 
         /// </summary>
-        /// <param name="key">The HID scan code combined with modifier.</param>
+        /// <param name="key">The HID usage id combined with modifiers.</param>
         /// <seealso cref="KeyboardPress"/>
+        /// <seealso cref="KeyboardReleaseAll"/>
+        /// <seealso cref="HidHelper.GetHidUsageFromPs2Set1"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task KeyboardRelease(byte key)
         {
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, key);
-            return _sender.SendFrame(frame.Bytes);
+            return _sender.SendFrame(frame.Bytes).ContinueWith(task => _keyboardKeyStates[key] = false);
+        }
+
+        /// <summary>
+        /// Release all keys.
+        /// </summary>
+        /// <seealso cref="KeyboardPress"/>
+        /// <seealso cref="KeyboardRelease"/>
+        /// <seealso cref="HidHelper.GetHidUsageFromPs2Set1"/>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
+        public Task KeyboardReleaseAll()
+        {
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, SerialSymbols.ReleaseAllKeys);
+            return _sender.SendFrame(frame.Bytes).ContinueWith(task => Array.Fill(_keyboardKeyStates, false));
+        }
+
+        /// <summary>
+        /// Return true if a key is currently pressed.
+        /// </summary>
+        public bool KeyboardIsPressed(byte key)
+        {
+            return _keyboardKeyStates[key];
         }
 
         /// <summary>

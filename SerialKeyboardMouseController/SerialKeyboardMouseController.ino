@@ -6,8 +6,8 @@
 
 #include <Arduino.h>
 #include <string.h>
-#include <Keyboard.h>
 
+#include "Keyboard.h"
 #include "AbsMouse.h"
 #include "serial_symbols.h"
 #include "debug_print.h"
@@ -157,7 +157,7 @@ void loop()
         case FRAME_TYPE_KEY_PRESS:
         {
             const uint8_t key = ptr_data[1];
-            Keyboard.press(key);
+            Keyboard.press_scan_code(key);
             break;
         }
         case FRAME_TYPE_KEY_RELEASE:
@@ -169,7 +169,7 @@ void loop()
             }
             else
             {
-                Keyboard.release(key);
+                Keyboard.release_scan_code(key);
             }
             break;
         }
