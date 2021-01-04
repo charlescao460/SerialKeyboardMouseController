@@ -5,13 +5,13 @@ using System.Threading.Tasks;
 
 namespace SerialKeyboardMouse.Serial
 {
-    public class WindowsSerialAdaptor : ISerialAdaptor
+    public class DotNetSerialAdaptor : ISerialAdaptor
     {
         private const int ReadTimeout = 10;
         private const int WriteTimeout = 10000;
         private readonly SerialPort _serialPort;
 
-        public WindowsSerialAdaptor(string portName)
+        public DotNetSerialAdaptor(string portName)
         {
             _serialPort = new SerialPort(portName, SerialSymbols.BaudRate, Parity.None);
             _serialPort.Open();
