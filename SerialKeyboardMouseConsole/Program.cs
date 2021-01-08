@@ -60,7 +60,7 @@ namespace SerialKeyboardMouseConsole
             return form;
         }
 
-        private static void MouseMoveEventHandler(object source, MouseEventArgs e)
+        private static async void MouseMoveEventHandler(object source, MouseEventArgs e)
         {
             if (e.X < 0 || e.Y < 0 || e.X > _form.Width || e.Y > _form.Height)
             {
@@ -83,7 +83,7 @@ namespace SerialKeyboardMouseConsole
             GeneralPurposeStopwatch.Restart();
             try
             {
-                _keyboardMouse.MoveMouseToCoordinate(x, y).GetAwaiter().GetResult();
+                await _keyboardMouse.MoveMouseToCoordinate(x, y);
             }
             catch (SerialDeviceException ex)
             {

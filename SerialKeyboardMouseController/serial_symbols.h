@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+constexpr unsigned long BAUD_RATE = 500000u;
+
 /*
  * Frame format:
  * 0xAB <Length> <Data...> <Checksum>

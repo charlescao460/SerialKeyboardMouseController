@@ -4,16 +4,15 @@
  Author:	CSR
 */
 
-#include <Arduino.h>
 #include <string.h>
-
+// Make sure to change SERIAL_RX_BUFFER_SIZE to 512 or higher in <HardwareSerial.h>
+#include <Arduino.h>
 #include "Keyboard.h"
 #include "AbsMouse.h"
 #include "serial_symbols.h"
 #include "debug_print.h"
 
 /****************************** Settings ******************************/
-constexpr unsigned long BAUD_RATE = 500000u;
 constexpr unsigned int SERIAL_TIMEOUT = 1000 / ((BAUD_RATE / 8) / MAX_FRAME_LENGTH) + 2;
 constexpr unsigned int RECEIVE_DATA_BUFFER_SIZE = 128u;
 static_assert(RECEIVE_DATA_BUFFER_SIZE >= MAX_FRAME_LENGTH + 2, "Serial receiving buffer must larger than frame size!");
