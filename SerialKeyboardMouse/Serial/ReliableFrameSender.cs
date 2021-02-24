@@ -115,34 +115,23 @@ namespace SerialKeyboardMouse.Serial
         {
             Stopwatch stopwatch = new Stopwatch();
             byte[] desiredLoopback = new byte[SerialSymbols.MaxFrameLength];
-            Process currentProcess = Process.GetCurrentProcess();
-            var oldPriority = currentProcess.PriorityClass;
-            currentProcess.PriorityClass = ProcessPriorityClass.AboveNormal;
-            bool isHighPriority = false;
+
             while (true)
             {
                 // Get next task
                 if (!_senderTasks.TryDequeue(out SenderTask toSend))
                 {
-                    currentProcess.PriorityClass = oldPriority;
-                    isHighPriority = false;
                     _threadTrigger.WaitOne();
                 }
 
                 if (_shouldExit)
                 {
-                    currentProcess.PriorityClass = oldPriority;
                     return; // Terminate thread
                 }
 
                 if (toSend == null)
                 {
                     continue;
-                }
-
-                if (!isHighPriority)
-                {
-                    isHighPriority = true;
                 }
 
                 try
@@ -188,7 +177,6 @@ namespace SerialKeyboardMouse.Serial
                         // Clean serial buffer
                         _serial.DiscardReadBuffer();
                     }
-
                     toSend.AwaitSource.SetException(
                         new SerialDeviceException($"Command failed or timeout after {NumMaxRetries} retries."));
                     continue;
