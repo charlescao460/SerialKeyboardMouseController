@@ -80,7 +80,7 @@ namespace SerialKeyboardMouse.Serial
         /// </summary>
         /// <param name="bytes">Bytes to sent</param>
         /// <exception cref="SerialDeviceException"> If timeout or exceed maximum number of retries.</exception>
-        public async Task SendFrame(SerialCommandFrame frame)
+        public Task SendFrame(SerialCommandFrame frame)
         {
             if (_senderTasks.Count > MaxNumQueuedTask)
             {
@@ -97,18 +97,7 @@ namespace SerialKeyboardMouse.Serial
             _senderTasks.Enqueue(task);
             _threadTrigger.Set();
 
-            try
-            {
-                await task.AwaitSource.Task.ConfigureAwait(false);
-            }
-            catch (SerialDeviceException)
-            {
-                throw;
-            }
-            catch (Exception e)
-            {
-                throw new SerialDeviceException("Exception in serial sender thread", e);
-            }
+            return task.AwaitSource.Task;
         }
 
         private void ThreadLoop()
