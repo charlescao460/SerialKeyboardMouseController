@@ -44,7 +44,7 @@ Some protection software will check USB VID and PID, to avoid being detected, co
 Also, be aware of [Keystroke dynamics](https://en.wikipedia.org/wiki/Keystroke_dynamics). Researchers have proven that each individual has a unique pattern of typing. So,  theoretically a machine learning pattern-recognition algorithm can detect suspicious keyboard operation. Try to add some random delays between each HID report. If you send commands too fast, it will definitely trigger the anti-bot protection. 
 
 ## Serial Protocol
-USB-related communication is reliable guaranteed by USB standard. Therefore, the only uncertainty is UART transmission. The serial communication is done by transmitting packets.
+USB-related communication should be reliable for most UART-USB bridge. Therefore, the only uncertainty is UART transmission. The serial communication is done by transmitting packets.
 
 Packets are variable-length, starting with preamble `0xAB`, followed by 1-byte length, after length is body, and the last byte is XOR checksum. If the Arduino device successfully received the packet and sent desired HID report, it will loop back the packet (i.e., send a packet with exact contents). If there’s anything wrong, it won’t send anything back. Controller library will then detect this timeout and try again. 
 
