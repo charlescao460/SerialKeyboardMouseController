@@ -1,13 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30711.63
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34511.84
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SerialKeyboardMouseController", "SerialKeyboardMouseController\SerialKeyboardMouseController.vcxproj", "{C5F80730-F44F-4478-BDAE-6634EFC2CA88}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SerialKeyboardMouse", "SerialKeyboardMouse\SerialKeyboardMouse.csproj", "{9533790B-359A-4BA6-96ED-2D13CC1FCFA7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SerialKeyboardMouseConsole", "SerialKeyboardMouseConsole\SerialKeyboardMouseConsole.csproj", "{65C78BC7-3B8B-4112-8133-4B6C81441EE8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SerialKeyboardMouseConsole", "SerialKeyboardMouseConsole\SerialKeyboardMouseConsole.csproj", "{65C78BC7-3B8B-4112-8133-4B6C81441EE8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,12 +15,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Debug|x86.ActiveCfg = Debug|Win32
-		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Debug|x86.Build.0 = Debug|Win32
-		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Release|Any CPU.ActiveCfg = Release|Win32
-		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Release|x86.ActiveCfg = Release|Win32
-		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Release|x86.Build.0 = Release|Win32
 		{9533790B-359A-4BA6-96ED-2D13CC1FCFA7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9533790B-359A-4BA6-96ED-2D13CC1FCFA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9533790B-359A-4BA6-96ED-2D13CC1FCFA7}.Debug|x86.ActiveCfg = Debug|Any CPU

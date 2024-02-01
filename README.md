@@ -11,7 +11,7 @@ A software-controlled hardware USB HID keyboard &amp; mouse for everyone
 ## Purpose
 This is an Arduino project with a .NET Core library allowed you to control a **real** hardware mouse &amp; keyboard without being detected by any anti-cheat or protection software. Since this system is using a real USB HID device, it’s very hard to distinguish it from normal mouses and keyboards.
 
-![](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/Pictures/TypicalApplication.png)
+![](Pictures/TypicalApplication.png)
 
 ## Build Hardware
 **Materials:**
@@ -24,10 +24,10 @@ This is an Arduino project with a .NET Core library allowed you to control a **r
 2. Connect Arduino **GND** -> UART-USB bridge **GND** (VCC is not necessarily connected)
 3. Connect Arduino **TX** -> UART-USB bridge **RX**
 4. Connect Arduino **RX** -> UART-USB bridge **TX**
-5. Upload [SerialKeyboardMouseController.ino](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/SerialKeyboardMouseController/SerialKeyboardMouseController.ino) to your Arduino board.
-6. (Optional) Modify [serial_symbols.h](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/SerialKeyboardMouseController/serial_symbols.h)
-and [SerialSymbols.cs](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/SerialKeyboardMouse/Serial/SerialSymbols.cs) to change baud rate. 
-Be aware of baud rate timing error. Most Arduino boards are running at 16Mhz, so `500000` is a resonable value without any clock error. 
+5. Upload [SerialKeyboardMouseController.ino](SerialKeyboardMouseController/src/SerialKeyboardMouseController.ino) to your Arduino board.
+6. (Optional) Modify [serial_symbols.h](SerialKeyboardMouseController/src/serial_symbols.h)
+and [SerialSymbols.cs](SerialKeyboardMouse/Serial/SerialSymbols.cs) to change baud rate. 
+Be aware of baud rate timing error. Most Arduino boards are running at 16Mhz, so `500000` is a reasonable value without any clock error. 
 7. Connect Arduino to target computer, connect UART-USB bridge to controller computer.
 
 ## Software Deployment
@@ -39,18 +39,29 @@ which will transfer all received mouse & keyboard events to the target.
 
 
 ## Notes
-Some protection software will check USB VID and PID, to avoid being detected, consider changing them in Arduino’s [bootloader](https://github.com/arduino/ArduinoCore-avr/tree/master/bootloaders). Most operation systems will have a general driver for HID devices, so changing VID & PID won’t involve driver issue.
+Some protection software will check USB VID and PID, to avoid being detected, consider changing them in Arduino’s [Core Library](https://github.com/arduino/ArduinoCore-avr/blob/master/cores/arduino/USBCore.cpp). Most operation systems will have a general driver for HID devices, so changing VID & PID won’t involve driver issue.
 
-Also, be aware of [Keystroke dynamics](https://en.wikipedia.org/wiki/Keystroke_dynamics). Researchers have proven that each individual has a unique pattern of typing. So,  theoretically a machine learning pattern-recognition algorithm can detect suspicious keyboard operation. Try to add some random delays between each HID report. If you send commands too fast, it will definitely trigger the anti-bot protection. 
+Recently, there are some reports about anti-cheat programs checking COM ports attached to the keyboard and mouse USB devices. To avoid being detected, we should disable its [USB CDC configuration](https://github.com/arduino/ArduinoCore-avr/blob/master/cores/arduino/USBDesc.h).
+
+Most anti-cheat will not judge you even if they know you are using an Arduino as keyboard. There are many DIY keyboards out there using Arduino. However, if you want some mental relief, consider passing below preprocessor defines when building Arduino projects:
+```bash
+-DCDC_DISABLED # Disable CDC (no virtual COM port)
+-DUSB_VID=0x0111 # Your VID 
+-DUSB_PID=0x0111 # Your PID
+-DUSB_PRODUCT=\"Your Product Name\"
+-DUSB_MANUFACTURER=\"Your Manufacturer Name\"
+```
+
+Also, be aware of [Keystroke dynamics](https://en.wikipedia.org/wiki/Keystroke_dynamics). There are many published literatures describing the unique pattern of typing for each individual. So, theoretically a machine learning pattern-recognition algorithm can detect suspicious keyboard operation. Or even a unsupervised machine learning model can separate automated inputs from real-user inputs. Try to add some random delays between each HID report. If you send commands too fast, it will definitely trigger the anti-bot protection. 
 
 ## Serial Protocol
 USB-related communication should be reliable for most UART-USB bridge. Therefore, the only uncertainty is UART transmission. The serial communication is done by transmitting packets.
 
 Packets are variable-length, starting with preamble `0xAB`, followed by 1-byte length, after length is body, and the last byte is XOR checksum. If the Arduino device successfully received the packet and sent desired HID report, it will loop back the packet (i.e., send a packet with exact contents). If there’s anything wrong, it won’t send anything back. Controller library will then detect this timeout and try again. 
 
-Serial protocol is detailed in [serial_symbols.h](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/SerialKeyboardMouseController/serial_symbols.h).
+Serial protocol is detailed in [serial_symbols.h](SerialKeyboardMouseController/src/serial_symbols.h).
 
-![](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/Pictures/Oscilloscope.png)
+![](Pictures/Oscilloscope.png)
 
 The image showed above is an example of transmitting packets when `<Space>` was pressed on Arduino Micro.  
 
@@ -64,14 +75,14 @@ The last byte `0x97` is the check sum of previous 2 bytes (starting after length
 
 After the Arduino successfully sent HID report, it sent an exact same packet back, so the software knows it succeeded. 
 
-As shown in oscilloscope, even with a relative low-speed 16MHz Atmega32U4, the packet processing and USB reports are nearly done immediately. The main bottleneck is UART, so the higher baud rate is better. Besides, since Arduino Micro has only 32 bytes serial input buffer, it will be easily overflowed by frequent requests. 
+As shown in oscilloscope, even with a relative low-speed 16MHz ATmega32U4, the packet processing and USB reports are nearly done immediately. The main bottleneck is UART, so the higher baud rate is better. Besides, since Arduino Micro has only 32 bytes serial input buffer, it will be easily overflowed by frequent requests. 
 
 
 
 ## License
 **GNU Lesser General Public License** (LGPL)
 
-Because [Keyboard.cpp](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/SerialKeyboardMouseController/Keyboard.cpp) and [Keyboard.h](https://github.com/charlescao460/SerialKeyboardMouseController/blob/main/SerialKeyboardMouseController/Keyboard.h) are based on Arduino's [Keyboard](https://github.com/arduino-libraries/Keyboard) library. If you can get rid of it by writing your own library, or if you don't need Arduino sketch, feel free to use this MIT Licesne:
+Because [Keyboard.cpp](SerialKeyboardMouseController/src/Keyboard.cpp) and [Keyboard.h](SerialKeyboardMouseController/src/Keyboard.h) are based on Arduino's [Keyboard](https://github.com/arduino-libraries/Keyboard) library. If you can get rid of it by writing your own library, or if you don't need Arduino sketch, feel free to use this MIT License:
 ```text
 MIT License
 
