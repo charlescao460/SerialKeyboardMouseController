@@ -85,22 +85,21 @@ namespace SerialKeyboardMouse.Serial
         public static HashSet<FrameType> ValidFrameTypes
             = new HashSet<FrameType>(FrameLengthLookup.Keys);
 
-        public static byte XorChecksum(Memory<byte> memory)
+        public static byte XorChecksum(Span<byte> memory)
         {
             if (memory.Length == 0)
             {
                 return 0;
             }
-            Span<byte> arr = memory.Span;
-            byte ret = arr[0];
-            for (int i = 1; i < arr.Length; ++i)
+            byte ret = memory[0];
+            for (int i = 1; i < memory.Length; ++i)
             {
-                ret ^= arr[i];
+                ret ^= memory[i];
             }
             return ret;
         }
 
-        public static bool XorChecker(Memory<byte> memory, byte desired)
+        public static bool XorChecker(Span<byte> memory, byte desired)
         {
             return XorChecksum(memory) == desired;
         }

@@ -12,16 +12,17 @@ namespace SerialKeyboardMouse.Serial
         /// <summary>
         /// Length of raw frame in bytes
         /// </summary>
-        public int Length { get; private set; }
+        public int Length { get; private init; }
 
-        private SerialSymbols.FrameType _type;
+        private readonly SerialSymbols.FrameType _type;
+
         /// <summary>
         /// Type of this serial frame
         /// </summary>
         public SerialSymbols.FrameType Type
         {
             get => _type;
-            private set
+            private init
             {
                 if (!SerialSymbols.FrameLengthLookup.TryGetValue(value, out int length))
                 {
@@ -43,36 +44,12 @@ namespace SerialKeyboardMouse.Serial
         public Tuple<ushort, ushort> Coordinate { get; }
 
         private readonly byte[] _bytes;
+        private readonly Lazy<Memory<byte>> _bytesMemory;
 
         /// <summary>
         /// Bytes that are ready to send
         /// </summary>
-        public Memory<byte> Bytes
-        {
-            get
-            {
-                _bytes[0] = SerialSymbols.FrameStart;
-                _bytes[1] = (byte)(Length - 2);
-                _bytes[2] = (byte)Type;
-                if (_isKeyType)
-                {
-                    _bytes[3] = Key.Value;
-                    _bytes[4] = SerialSymbols.XorChecksum(new Memory<byte>(_bytes, 2, 2));
-                }
-                else
-                {
-                    ushort x = Coordinate.Item1;
-                    ushort y = Coordinate.Item2;
-                    if (!BitConverter.TryWriteBytes(new Span<byte>(_bytes, 3, 2), x)
-                        || !BitConverter.TryWriteBytes(new Span<byte>(_bytes, 5, 2), y))
-                    {
-                        throw new Exception("BitConverter failed.");
-                    }
-                    _bytes[7] = SerialSymbols.XorChecksum(new Memory<byte>(_bytes, 2, 5));
-                }
-                return new Memory<byte>(_bytes, 0, Length);
-            }
-        }
+        public Memory<byte> Bytes => _bytesMemory.Value;
 
         private readonly bool _isKeyType;
 
@@ -83,6 +60,34 @@ namespace SerialKeyboardMouse.Serial
             Coordinate = cord;
             _bytes = FrameArrayPool.Rent(SerialSymbols.MaxFrameLength);
             _isKeyType = keyType;
+            _bytesMemory = new Lazy<Memory<byte>>(() =>
+            {
+                FillFrameBytes();
+                return new Memory<byte>(_bytes, 0, Length);
+            });
+        }
+
+        private void FillFrameBytes()
+        {
+            _bytes[0] = SerialSymbols.FrameStart;
+            _bytes[1] = (byte)(Length - 2);
+            _bytes[2] = (byte)Type;
+            if (_isKeyType)
+            {
+                _bytes[3] = Key.Value;
+                _bytes[4] = SerialSymbols.XorChecksum(new Span<byte>(_bytes, 2, 2));
+            }
+            else
+            {
+                ushort x = Coordinate.Item1;
+                ushort y = Coordinate.Item2;
+                if (!BitConverter.TryWriteBytes(new Span<byte>(_bytes, 3, 2), x)
+                    || !BitConverter.TryWriteBytes(new Span<byte>(_bytes, 5, 2), y))
+                {
+                    throw new Exception("BitConverter failed.");
+                }
+                _bytes[7] = SerialSymbols.XorChecksum(new Span<byte>(_bytes, 2, 5));
+            }
         }
 
         ~SerialCommandFrame()

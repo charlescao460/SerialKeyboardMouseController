@@ -21,7 +21,7 @@ namespace SerialKeyboardMouse
         public KeyboardMouse(ISerialAdaptor serial)
         {
             _sender = new ReliableFrameSender(serial);
-            _keyboardKeyStates = new bool[255];
+            _keyboardKeyStates = new bool[byte.MaxValue + 1];
         }
 
         /// <summary>

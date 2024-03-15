@@ -49,8 +49,9 @@ namespace SerialKeyboardMouse.Serial
         private volatile bool _shouldExit;
         private bool _disposedValue;
         private readonly ConcurrentQueue<SenderTask> _senderTasks;
-
         private readonly Random _random;
+        private SpinWait _spinWait;
+        private readonly Stopwatch _loopBackStopwatch;
 
         /// <summary>
         /// Enable the delay between retries of all key/button operations. Default is true.
@@ -70,6 +71,8 @@ namespace SerialKeyboardMouse.Serial
             _threadTrigger = new EventWaitHandle(false, EventResetMode.AutoReset);
             _senderTasks = new ConcurrentQueue<SenderTask>();
             _random = new Random();
+            _spinWait = new SpinWait();
+            _loopBackStopwatch = new Stopwatch();
             _thread = new Thread(ThreadLoop)
             {
                 Priority = ThreadPriority.Highest
@@ -91,7 +94,7 @@ namespace SerialKeyboardMouse.Serial
 
             SenderTask task = new SenderTask(frame);
 
-            if (!ValidFrameBytes(task.BytesToSend))
+            if (!ValidFrameBytes(task.Frame.Bytes.Span))
             {
                 throw new ArgumentException("Invalid frame bytes!");
             }
@@ -104,76 +107,32 @@ namespace SerialKeyboardMouse.Serial
 
         private void ThreadLoop()
         {
-            Stopwatch stopwatch = new Stopwatch();
-            byte[] desiredLoopback = new byte[SerialSymbols.MaxFrameLength];
-
             while (true)
             {
-                // Get next task
-                if (!_senderTasks.TryDequeue(out SenderTask toSend))
-                {
-                    _threadTrigger.WaitOne();
-                }
-
                 if (_shouldExit)
                 {
                     return; // Terminate thread
                 }
 
-                if (toSend == null)
+                // Get next task
+                if (!_senderTasks.TryDequeue(out SenderTask toSend))
                 {
+                    // Two-phase wait for reducing latency
+                    if (!_spinWait.NextSpinWillYield)
+                    {
+                        _spinWait.SpinOnce();
+                    }
+                    else
+                    {
+                        _threadTrigger.WaitOne();
+                    }
                     continue;
                 }
 
                 try
                 {
-                    // Load bytes to thread local array
-                    toSend.BytesToSend.CopyTo(new Memory<byte>(desiredLoopback));
-                    int length = toSend.BytesToSend.Length;
-
-                    // Loop for retry
-                    for (int i = 0; i < NumMaxRetries; ++i)
-                    {
-                        // Send command
-                        _serial.Write(toSend.BytesToSend.Span);
-
-                        // Start timer
-                        stopwatch.Restart();
-
-                        // Wait loop back
-                        int index = 0;
-                        for (byte
-                            c = _serial.ReadByte(out bool _); // We don't care timeout here, and it shouldn't happen
-                            stopwatch.ElapsedMilliseconds <= CommandTimeout;
-                            c = _serial.ReadByte(out _))
-                        {
-                            if (c == desiredLoopback[index])
-                            {
-                                if (++index == length)
-                                {
-                                    goto onSuccessful;
-                                }
-                            }
-                            else
-                            {
-                                index = 0;
-                            }
-                        }
-                        // Retry delay if needed
-                        if ((toSend.Original.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
-                            || (toSend.Original.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
-                        {
-                            Thread.Sleep(RetryInterval + _random.Next(-20, 20));
-                        }
-                        // Clean serial buffer
-                        _serial.DiscardReadBuffer();
-                    }
-                    toSend.AwaitSource.SetException(
-                        new SerialDeviceException($"Command failed or timeout after {NumMaxRetries} retries."));
-                    continue;
-                onSuccessful:
+                    SendAndWaitForLoopback(toSend.Frame);
                     toSend.AwaitSource.SetResult();
-                    continue;
                 }
                 catch (Exception e)
                 {
@@ -182,9 +141,57 @@ namespace SerialKeyboardMouse.Serial
             }
         }
 
-        private static bool ValidFrameBytes(Memory<byte> memory)
+        /// <summary>
+        /// Send and read the loopback of the frame bytes
+        /// </summary>
+        /// <returns></returns>
+        private void SendAndWaitForLoopback(SerialCommandFrame toSend)
         {
-            Span<byte> span = memory.Span;
+            int length = toSend.Length;
+            Span<byte> bytes = toSend.Bytes.Span;
+
+            // Loop for retry
+            for (int i = 0; i < NumMaxRetries; ++i)
+            {
+                // Send command
+                _serial.Write(bytes);
+
+                // Start timer
+                _loopBackStopwatch.Restart();
+
+                // Wait loop back
+                int index = 0;
+                for (byte
+                    c = _serial.ReadByte(out bool _); // We don't care timeout here, and it shouldn't happen
+                    _loopBackStopwatch.ElapsedMilliseconds <= CommandTimeout;
+                    c = _serial.ReadByte(out _))
+                {
+                    if (c == bytes[index])
+                    {
+                        if (++index == length)
+                        {
+                            return; // If succeeded, return here.
+                        }
+                    }
+                    else
+                    {
+                        index = 0;
+                    }
+                }
+                // Retry delay if needed
+                if ((toSend.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
+                    || (toSend.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
+                {
+                    Thread.Sleep(RetryInterval + _random.Next(-20, 20));
+                }
+                // Clean serial buffer
+                _serial.DiscardReadBuffer();
+            }
+            throw new SerialDeviceException($"Command failed or timeout after {NumMaxRetries} retries.");
+        }
+
+        private static bool ValidFrameBytes(Span<byte> span)
+        {
             int length = span.Length;
             if (length > SerialSymbols.MaxFrameLength || length < SerialSymbols.MinFrameLength)
             {
@@ -203,7 +210,7 @@ namespace SerialKeyboardMouse.Serial
             }
 
             byte checksum = span[length - 1];
-            if (!SerialSymbols.XorChecker(memory.Slice(2, length - 3), checksum))
+            if (!SerialSymbols.XorChecker(span.Slice(2, length - 3), checksum))
             {
                 return false;
             }
@@ -225,9 +232,7 @@ namespace SerialKeyboardMouse.Serial
         {
             public TaskCompletionSource AwaitSource { get; } = new();
 
-            public Memory<byte> BytesToSend { get; } = frame.Bytes;
-
-            public SerialCommandFrame Original { get; } = frame;
+            public SerialCommandFrame Frame { get; } = frame;
         }
 
         protected virtual void Dispose(bool disposing)
