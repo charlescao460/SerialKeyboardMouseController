@@ -42,13 +42,13 @@ namespace SerialKeyboardMouse.Serial
         /// </summary>
         /// <param name="memory">Memory storing reading result</param>
         /// <returns>Actual bytes read</returns>
-        public int Read(Memory<byte> memory);
+        public int Read(Span<byte> memory);
 
         /// <summary>
         /// Synchronously write bytes to serial
         /// </summary>
         /// <param name="memory">Memory containing bytes to write</param>
-        public void Write(Memory<byte> memory);
+        public void Write(Span<byte> memory);
 
         /// <summary>
         /// Asynchronously read bytes from serial

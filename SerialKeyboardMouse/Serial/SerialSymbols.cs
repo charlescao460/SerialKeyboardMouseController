@@ -8,7 +8,7 @@ namespace SerialKeyboardMouse.Serial
 {
     public static class SerialSymbols
     {
-        public const int BaudRate = 500000;
+        public const int BaudRate = 2000000;
 
         public const byte FrameStart = 0xAB;
 

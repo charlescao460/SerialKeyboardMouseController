@@ -17,6 +17,9 @@ namespace SerialKeyboardMouseConsole
             [Option(shortName: 'c', longName: "com", Required = true, HelpText = "COM ports to open. E.g. COM1")]
             public string ComPort { get; set; }
 
+            [Option(shortName: 'f', longName: "flow-control", Required = false, Default = false, HelpText = "Whether to enable Hardware Flow Control (RTS/CTS).")]
+            public bool HardwareFlowControl { get; set; }
+
             [Option(shortName: 'w', longName: "width", Required = false, Default = 1920, HelpText = "Width of absolute mouse")]
             public int Width { get; set; }
 
@@ -193,7 +196,7 @@ namespace SerialKeyboardMouseConsole
             ISerialAdaptor serial;
             try
             {
-                serial = new DotNetSerialAdaptor(options.ComPort);
+                serial = new DotNetSerialAdaptor(options.ComPort, options.HardwareFlowControl);
             }
             catch (Exception)
             {

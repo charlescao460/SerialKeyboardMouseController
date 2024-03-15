@@ -8,13 +8,57 @@ namespace SerialKeyboardMouse.Serial
     public class DotNetSerialAdaptor : ISerialAdaptor
     {
         private const int ReadTimeout = 10;
-        private const int WriteTimeout = 10000;
+        private const int WriteTimeout = 100;
         private readonly SerialPort _serialPort;
 
+        /// <summary>
+        /// Construct an opened serial port using .NET SerialPort.
+        /// </summary>
+        /// <param name="portName">Port number (e.g. "COM1")</param>
         public DotNetSerialAdaptor(string portName)
         {
             _serialPort = new SerialPort(portName, SerialSymbols.BaudRate, Parity.None);
             _serialPort.Open();
+            InitializePort();
+        }
+
+        /// <summary>
+        /// Construct an opened serial port using .NET SerialPort.
+        /// Allowing specifying whether to enable hardware flow control (RTS/CTS)
+        /// </summary>
+        /// <param name="portName">Port number (e.g. "COM1")</param>
+        /// <param name="hardwareFlowControl">True to enable RTS/CTS hardware flow control</param>
+        public DotNetSerialAdaptor(string portName, bool hardwareFlowControl)
+        {
+            _serialPort = new SerialPort(portName, SerialSymbols.BaudRate, Parity.None);
+            if (hardwareFlowControl)
+            {
+                _serialPort.Handshake = Handshake.RequestToSend;
+            }
+            _serialPort.Open();
+            InitializePort();
+        }
+
+        /// <summary>
+        /// Construct an opened serial port using .NET SerialPort.
+        /// Allowing specifying baud rate and enable hardware flow control (RTS/CTS)
+        /// </summary>
+        /// <param name="portName">Port number (e.g. "COM1")</param>
+        /// <param name="baudRate">Baud Rate</param>
+        /// <param name="hardwareFlowControl">True to enable RTS/CTS hardware flow control</param>
+        public DotNetSerialAdaptor(string portName, int baudRate, bool hardwareFlowControl)
+        {
+            _serialPort = new SerialPort(portName, baudRate, Parity.None);
+            if (hardwareFlowControl)
+            {
+                _serialPort.Handshake = Handshake.RequestToSend;
+            }
+            _serialPort.Open();
+            InitializePort();
+        }
+
+        private void InitializePort()
+        {
             _serialPort.BaseStream.ReadTimeout = ReadTimeout;
             _serialPort.ReadTimeout = ReadTimeout;
             _serialPort.BaseStream.WriteTimeout = WriteTimeout;
@@ -46,14 +90,14 @@ namespace SerialKeyboardMouse.Serial
             _serialPort.BaseStream.Write(toSend);
         }
 
-        public int Read(Memory<byte> memory)
+        public int Read(Span<byte> memory)
         {
-            return _serialPort.BaseStream.Read(memory.Span);
+            return _serialPort.BaseStream.Read(memory);
         }
 
-        public void Write(Memory<byte> memory)
+        public void Write(Span<byte> memory)
         {
-            _serialPort.BaseStream.Write(memory.Span);
+            _serialPort.BaseStream.Write(memory);
         }
 
         public int AvailableBytes => (int)_serialPort.BaseStream.Length;

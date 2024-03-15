@@ -16,10 +16,6 @@ namespace SerialKeyboardMouse
         {
         }
 
-        protected SerialDeviceException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
-
         public SerialDeviceException(string message) : base(message)
         {
         }

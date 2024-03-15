@@ -70,15 +70,17 @@ namespace SerialKeyboardMouse.Serial
             _threadTrigger = new EventWaitHandle(false, EventResetMode.AutoReset);
             _senderTasks = new ConcurrentQueue<SenderTask>();
             _random = new Random();
-            _thread = new Thread(new ThreadStart(ThreadLoop));
-            _thread.Priority = ThreadPriority.Highest;
+            _thread = new Thread(ThreadLoop)
+            {
+                Priority = ThreadPriority.Highest
+            };
             _thread.Start();
         }
 
         /// <summary>
-        /// Send frame bytes to serial, and wait respond. 
+        /// Send frame to serial, and wait respond. 
         /// </summary>
-        /// <param name="bytes">Bytes to sent</param>
+        /// <param name="frame">Frame to be sent</param>
         /// <exception cref="SerialDeviceException"> If timeout or exceed maximum number of retries.</exception>
         public Task SendFrame(SerialCommandFrame frame)
         {
@@ -133,7 +135,7 @@ namespace SerialKeyboardMouse.Serial
                     for (int i = 0; i < NumMaxRetries; ++i)
                     {
                         // Send command
-                        _serial.Write(toSend.BytesToSend);
+                        _serial.Write(toSend.BytesToSend.Span);
 
                         // Start timer
                         stopwatch.Restart();
@@ -219,20 +221,13 @@ namespace SerialKeyboardMouse.Serial
             }
         }
 
-        private class SenderTask
+        private class SenderTask(SerialCommandFrame frame)
         {
-            public TaskCompletionSource AwaitSource { get; }
+            public TaskCompletionSource AwaitSource { get; } = new();
 
-            public Memory<byte> BytesToSend { get; }
+            public Memory<byte> BytesToSend { get; } = frame.Bytes;
 
-            public SerialCommandFrame Original { get; }
-
-            public SenderTask(SerialCommandFrame frame)
-            {
-                AwaitSource = new TaskCompletionSource();
-                Original = frame;
-                BytesToSend = frame.Bytes;
-            }
+            public SerialCommandFrame Original { get; } = frame;
         }
 
         protected virtual void Dispose(bool disposing)
