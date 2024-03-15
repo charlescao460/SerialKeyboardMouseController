@@ -81,11 +81,25 @@ namespace SerialKeyboardMouse.Serial
         }
 
         /// <summary>
-        /// Send frame to serial, and wait respond. 
+        /// Send frame to serial, and wait respond. This method will block until we received the response. 
+        /// The frame order called with this Async method is guaranteed.
+        /// Due to the nature of async/sync, we do not guarantee the order when mixing both async and blocking APIs.
         /// </summary>
         /// <param name="frame">Frame to be sent</param>
         /// <exception cref="SerialDeviceException"> If timeout or exceed maximum number of retries.</exception>
-        public Task SendFrame(SerialCommandFrame frame)
+        public void SendFrame(SerialCommandFrame frame)
+        {
+            SendAndWaitForLoopback(frame);
+        }
+
+        /// <summary>
+        /// Send frame to serial, and wait respond in an async way.
+        /// The frame order called with this Async method is guaranteed.
+        /// Due to the nature of async/sync, we do not guarantee the order when mixing both async and blocking APIs.
+        /// </summary>
+        /// <param name="frame">Frame to be sent</param>
+        /// <exception cref="SerialDeviceException"> If timeout or exceed maximum number of retries.</exception>
+        public Task SendFrameAsync(SerialCommandFrame frame)
         {
             if (_senderTasks.Count > MaxNumQueuedTask)
             {
@@ -150,43 +164,57 @@ namespace SerialKeyboardMouse.Serial
             int length = toSend.Length;
             Span<byte> bytes = toSend.Bytes.Span;
 
+
             // Loop for retry
             for (int i = 0; i < NumMaxRetries; ++i)
             {
-                // Send command
-                _serial.Write(bytes);
-
-                // Start timer
-                _loopBackStopwatch.Restart();
-
-                // Wait loop back
-                int index = 0;
-                for (byte
-                    c = _serial.ReadByte(out bool _); // We don't care timeout here, and it shouldn't happen
-                    _loopBackStopwatch.ElapsedMilliseconds <= CommandTimeout;
-                    c = _serial.ReadByte(out _))
+                lock (_serial)
                 {
-                    if (c == bytes[index])
+                    try
                     {
-                        if (++index == length)
+                        // Send command
+                        _serial.Write(bytes);
+
+                        // Start timer
+                        _loopBackStopwatch.Restart();
+
+                        // Wait loop back
+                        int index = 0;
+                        for (byte
+                             c = _serial.ReadByte(out bool _); // We don't care timeout here, and it shouldn't happen
+                             _loopBackStopwatch.ElapsedMilliseconds <= CommandTimeout;
+                             c = _serial.ReadByte(out _))
                         {
-                            return; // If succeeded, return here.
+                            if (c == bytes[index])
+                            {
+                                if (++index == length)
+                                {
+                                    return; // If succeeded, return here.
+                                }
+                            }
+                            else
+                            {
+                                index = 0;
+                            }
                         }
+
+                        // Clean serial buffer
+                        _serial.DiscardReadBuffer();
                     }
-                    else
+                    catch (Exception e)
                     {
-                        index = 0;
+                        throw new SerialDeviceException("Serial Errors!", e);
+                    }
+
+                    // Retry delay if needed
+                    if ((toSend.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
+                        || (toSend.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
+                    {
+                        Thread.Sleep(RetryInterval + _random.Next(-20, 20));
                     }
                 }
-                // Retry delay if needed
-                if ((toSend.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
-                    || (toSend.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
-                {
-                    Thread.Sleep(RetryInterval + _random.Next(-20, 20));
-                }
-                // Clean serial buffer
-                _serial.DiscardReadBuffer();
             }
+
             throw new SerialDeviceException($"Command failed or timeout after {NumMaxRetries} retries.");
         }
 

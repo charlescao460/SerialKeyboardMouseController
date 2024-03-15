@@ -63,13 +63,13 @@ namespace SerialKeyboardMouseConsole
             return form;
         }
 
-        private static async void MouseMoveEventHandler(object source, MouseEventArgs e)
+        private static void MouseMoveEventHandler(object source, MouseEventArgs e)
         {
             if (e.X < 0 || e.Y < 0 || e.X > _form.Width || e.Y > _form.Height)
             {
                 return;
             }
-            if (MouseThrottleStopwatch.ElapsedMilliseconds < (1000.0 / 125.0))
+            if (MouseThrottleStopwatch.ElapsedMilliseconds < (1000.0 / 500.0))
             {
                 return;
             }
@@ -86,7 +86,7 @@ namespace SerialKeyboardMouseConsole
             GeneralPurposeStopwatch.Restart();
             try
             {
-                await _keyboardMouse.MoveMouseToCoordinate(x, y);
+                _keyboardMouse.MoveMouseToCoordinate(x, y);
             }
             catch (SerialDeviceException ex)
             {
@@ -122,7 +122,14 @@ namespace SerialKeyboardMouseConsole
             GeneralPurposeStopwatch.Restart();
             try
             {
-                (isPress ? _keyboardMouse.MousePressButton(button) : _keyboardMouse.MouseReleaseButton(button)).GetAwaiter().GetResult();
+                if (isPress)
+                {
+                    _keyboardMouse.MousePressButton(button);
+                }
+                else
+                {
+                    _keyboardMouse.MouseReleaseButton(button);
+                }
             }
             catch (SerialDeviceException ex)
             {
@@ -151,7 +158,14 @@ namespace SerialKeyboardMouseConsole
             GeneralPurposeStopwatch.Restart();
             try
             {
-                (isPress ? _keyboardMouse.KeyboardPress(hidScanCode) : _keyboardMouse.KeyboardRelease(hidScanCode)).GetAwaiter().GetResult();
+                if (isPress)
+                {
+                    _keyboardMouse.KeyboardPress(hidScanCode);
+                }
+                else
+                {
+                    _keyboardMouse.KeyboardRelease(hidScanCode);
+                }
             }
             catch (SerialDeviceException ex)
             {
@@ -169,7 +183,7 @@ namespace SerialKeyboardMouseConsole
             GeneralPurposeStopwatch.Restart();
             try
             {
-                _keyboardMouse.MouseScroll(value).GetAwaiter().GetResult(); ;
+                _keyboardMouse.MouseScroll(value);
             }
             catch (SerialDeviceException ex)
             {
