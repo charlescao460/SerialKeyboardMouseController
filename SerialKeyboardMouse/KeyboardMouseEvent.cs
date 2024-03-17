@@ -38,7 +38,7 @@ namespace SerialKeyboardMouse
     /// <summary>
     /// Event raised when a keyboard key or a mouse button has been pressed for a long time.
     /// </summary>
-    public delegate void PressTimeOutEvent();
+    public delegate void PressTimeOutEvent(PressTimeOutEventArgs args);
 
     public class PressTimeOutEventArgs : EventArgs
     {
@@ -51,7 +51,7 @@ namespace SerialKeyboardMouse
         /// </summary>
         public bool ShouldRelease { get; set; }
 
-        internal PressTimeOutEventArgs(MouseButton mouseButton, HidKeyboardUsage keyboardKey)
+        internal PressTimeOutEventArgs(MouseButton? mouseButton, HidKeyboardUsage? keyboardKey)
         {
             MouseButton = mouseButton;
             KeyboardKey = keyboardKey;

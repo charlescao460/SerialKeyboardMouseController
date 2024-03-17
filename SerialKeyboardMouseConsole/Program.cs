@@ -248,6 +248,13 @@ namespace SerialKeyboardMouseConsole
                 };
             }
 
+            _keyboardMouse.OnPressTimeout += (e) =>
+            {
+                Console.WriteLine($"{e.KeyboardKey}{e.MouseButton} press timeouts! It will be automatically released.");
+                e.ShouldRelease = true;
+            };
+            _keyboardMouse.EnablePressMonitor(TimeSpan.FromMilliseconds(100), TimeSpan.FromSeconds(5));
+
             _form.MouseMove += MouseMoveEventHandler;
             _form.MouseWheel += MouseScrollEventHandler;
             _form.MouseDown += (s, e) => { MousePressReleaseHelper(e, true); };

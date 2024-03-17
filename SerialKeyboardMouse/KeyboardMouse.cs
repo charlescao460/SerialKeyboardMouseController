@@ -26,6 +26,7 @@ namespace SerialKeyboardMouse
         private readonly ConcurrentDictionary<MouseButton, DateTime?> _mousePressTimes;
         private Tuple<int, int> _mouseResolution;
         private Tuple<int, int> _mousePosition;
+        private KeyButtonPressTimeoutMonitor _pressMonitor;
 
         public Tuple<int, int> MouseResolutionTuple => _mouseResolution;
 
@@ -43,6 +44,13 @@ namespace SerialKeyboardMouse
         /// Event will be raised when we send a new HID report through hardware.
         /// </summary>
         public event KeyboardMouseEvent OnOperation;
+
+        /// <summary>
+        /// Event raised when a key or button has been pressed for a long time.
+        /// Need to enable through 
+        /// </summary>
+        /// <see cref="EnablePressMonitor"/>
+        public event PressTimeOutEvent OnPressTimeout;
 
         /// <summary>
         /// Constructor of the KeyboardMouse. 
@@ -235,7 +243,7 @@ namespace SerialKeyboardMouse
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, SerialSymbols.ReleaseAllKeys);
             _sender.SendFrame(frame, _ =>
             {
-                foreach (var k in _mousePressTimes.Keys)
+                foreach (var k in Enum.GetValues<MouseButton>())
                 {
                     _mousePressTimes[k] = null;
                 }
@@ -255,7 +263,7 @@ namespace SerialKeyboardMouse
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, SerialSymbols.ReleaseAllKeys);
             return _sender.SendFrameAsync(frame, _ =>
             {
-                foreach (var k in _mousePressTimes.Keys)
+                foreach (var k in Enum.GetValues<MouseButton>())
                 {
                     _mousePressTimes[k] = null;
                 }
@@ -332,7 +340,7 @@ namespace SerialKeyboardMouse
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, SerialSymbols.ReleaseAllKeys);
             _sender.SendFrame(frame, _ =>
             {
-                foreach (var k in _keyboardPressTimes.Keys)
+                foreach (var k in Enum.GetValues<HidKeyboardUsage>())
                 {
                     _keyboardPressTimes[k] = null;
                 }
@@ -351,7 +359,7 @@ namespace SerialKeyboardMouse
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, SerialSymbols.ReleaseAllKeys);
             return _sender.SendFrameAsync(frame, _ =>
             {
-                foreach (var k in _keyboardPressTimes.Keys)
+                foreach (var k in Enum.GetValues<HidKeyboardUsage>())
                 {
                     _keyboardPressTimes[k] = null;
                 }
@@ -363,7 +371,7 @@ namespace SerialKeyboardMouse
         /// </summary>
         public bool KeyboardIsPressed(HidKeyboardUsage key)
         {
-            return _keyboardPressTimes[key] == null;
+            return _keyboardPressTimes[key] != null;
         }
 
         /// <summary>
@@ -371,8 +379,43 @@ namespace SerialKeyboardMouse
         /// </summary>
         public bool MouseButtonIsPressed(MouseButton button)
         {
-            return _mousePressTimes[button] == null;
+            return _mousePressTimes[button] != null;
         }
+
+        /// <summary>
+        /// Enable the press timeout monitoring. Must set <see cref="OnPressTimeout"/> before enabling. 
+        /// </summary>
+        /// <param name="period">The interval of checking timeout.</param>
+        /// <param name="timeout">The longest time that a key or button can be pressed.</param>
+        /// <exception cref="InvalidOperationException">If <see cref="OnPressTimeout"/> is not set. Or if it is already enable. </exception>
+        /// <see cref="OnPressTimeout"/>
+        /// <seealso cref="DisablePressMonitor"/>
+        public void EnablePressMonitor(TimeSpan period, TimeSpan timeout)
+        {
+            if (OnPressTimeout == null)
+            {
+                throw new InvalidOperationException("OnPressTimeout Event Handler Must Be Set!");
+            }
+
+            if (_pressMonitor != null)
+            {
+                throw new InvalidOperationException("Press Timeout Monitoring Already Enable!");
+            }
+
+            _pressMonitor = new KeyButtonPressTimeoutMonitor(this, period, timeout, arg => OnPressTimeout?.Invoke(arg));
+        }
+
+        /// <summary>
+        /// Disable the press timeout monitoring.
+        /// </summary>
+        /// <seealso cref="EnablePressMonitor"/>
+        /// <seealso cref="OnPressTimeout"/>
+        public void DisablePressMonitor()
+        {
+            _pressMonitor.Dispose();
+            _pressMonitor = null;
+        }
+
 
         /// <summary>
         /// Helper function to check mouse button and throw exception.
@@ -393,6 +436,7 @@ namespace SerialKeyboardMouse
             }
             if (disposing)
             {
+                _pressMonitor?.Dispose();
                 // Try to release all keys/buttons
                 try
                 {
@@ -403,7 +447,6 @@ namespace SerialKeyboardMouse
                 {
                     // ignored
                 }
-
                 _sender.Dispose();
             }
             _disposedValue = true;
@@ -413,6 +456,72 @@ namespace SerialKeyboardMouse
         {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// A thread monitor to repeatedly monitor the pressed keys on keyboard and mouse buttons.
+        /// In case of a key that was pressed too long, it will raise the event.
+        /// </summary>
+        private sealed class KeyButtonPressTimeoutMonitor : IDisposable
+        {
+            private readonly Timer _timer;
+            private readonly KeyboardMouse _km;
+            private readonly TimeSpan _timeout;
+            private readonly Action<PressTimeOutEventArgs> _onTimeout;
+
+            public KeyButtonPressTimeoutMonitor(KeyboardMouse km, TimeSpan checkPeriod, TimeSpan timeout, Action<PressTimeOutEventArgs> onTimeout)
+            {
+                _km = km;
+                _timeout = timeout;
+                _onTimeout = onTimeout;
+                _timer = new Timer(checkPeriod)
+                {
+                    AutoReset = true,
+                };
+                _timer.Elapsed += CheckForTimeout;
+                _timer.Start();
+            }
+
+            private void CheckForTimeout(object source, ElapsedEventArgs e)
+            {
+                var now = DateTime.Now;
+                foreach (var k in Enum.GetValues<HidKeyboardUsage>())
+                {
+                    var keyTime = _km._keyboardPressTimes[k];
+                    if (keyTime == null || now - keyTime <= _timeout)
+                    {
+                        continue;
+                    }
+                    var args = new PressTimeOutEventArgs(null, k);
+                    _onTimeout.Invoke(args);
+                    if (args.ShouldRelease)
+                    {
+                        _km.KeyboardReleaseAsync(k); // Try to release, fire and forget
+                    }
+                }
+                foreach (var k in Enum.GetValues<MouseButton>())
+                {
+                    var buttonTime = _km._mousePressTimes[k];
+                    if (buttonTime == null || now - buttonTime <= _timeout)
+                    {
+                        continue;
+                    }
+                    var args = new PressTimeOutEventArgs(k, null);
+                    _onTimeout.Invoke(args);
+                    if (args.ShouldRelease)
+                    {
+                        _km.MouseReleaseButton(k); // Try to release, fire and forget
+                    }
+                }
+            }
+
+            // This is a sealed class, so we don't need to do the dispose pattern. 
+            public void Dispose()
+            {
+                _timer.Elapsed -= CheckForTimeout;
+                _timer.Stop();
+                _timer.Dispose();
+            }
         }
     }
 }
