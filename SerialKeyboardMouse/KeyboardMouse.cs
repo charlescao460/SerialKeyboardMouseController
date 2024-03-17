@@ -24,10 +24,23 @@ namespace SerialKeyboardMouse
 
         public int MouseResolutionHeight { get; private set; }
 
+        /// <summary>
+        /// Event will be raised when we send a new HID report through hardware.
+        /// </summary>
+        public event KeyboardMouseEvent OnOperation;
+
+        /// <summary>
+        /// Constructor of the KeyboardMouse. 
+        /// </summary>
+        /// <param name="serial">The serial adaptor.
+        /// The ownership of such object is provided to this instance.
+        /// It will be managed and disposed by this instance.
+        /// </param>
         public KeyboardMouse(ISerialAdaptor serial)
         {
             _sender = new ReliableFrameSender(serial);
             _keyboardKeyStates = new bool[byte.MaxValue + 1];
+            _sender.OnSendingReport += (e) => OnOperation?.Invoke(e);
         }
 
         /// <summary>
@@ -138,11 +151,11 @@ namespace SerialKeyboardMouse
         /// Press mouse's button with blocking I/O.
         /// </summary>
         /// <param name="button"> Button to press.</param>
-        /// <see cref="SerialSymbols.MouseButton"/>
+        /// <see cref="MouseButton"/>
         /// <seealso cref="MouseReleaseButtonAsync"/>
         /// <seealso cref="MouseReleaseAllButtonsAsync"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
-        public void MousePressButton(SerialSymbols.MouseButton button)
+        public void MousePressButton(MouseButton button)
         {
             CheckMouseButton(button);
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MousePress, (byte)button);
@@ -153,11 +166,11 @@ namespace SerialKeyboardMouse
         /// Press mouse's button with async I/O.
         /// </summary>
         /// <param name="button"> Button to press.</param>
-        /// <see cref="SerialSymbols.MouseButton"/>
+        /// <see cref="MouseButton"/>
         /// <seealso cref="MouseReleaseButtonAsync"/>
         /// <seealso cref="MouseReleaseAllButtonsAsync"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
-        public Task MousePressButtonAsync(SerialSymbols.MouseButton button)
+        public Task MousePressButtonAsync(MouseButton button)
         {
             CheckMouseButton(button);
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MousePress, (byte)button);
@@ -168,11 +181,11 @@ namespace SerialKeyboardMouse
         /// Release mouse's button with blocking I/O.
         /// </summary>
         /// <param name="button"> Button to release.</param>
-        /// <see cref="SerialSymbols.MouseButton"/>
+        /// <see cref="MouseButton"/>
         /// <seealso cref="MousePressButtonAsync"/>
         /// <seealso cref="MouseReleaseAllButtonsAsync"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
-        public void MouseReleaseButton(SerialSymbols.MouseButton button)
+        public void MouseReleaseButton(MouseButton button)
         {
             CheckMouseButton(button);
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, (byte)button);
@@ -183,11 +196,11 @@ namespace SerialKeyboardMouse
         /// Release mouse's button with async I/O.
         /// </summary>
         /// <param name="button"> Button to release.</param>
-        /// <see cref="SerialSymbols.MouseButton"/>
+        /// <see cref="MouseButton"/>
         /// <seealso cref="MousePressButtonAsync"/>
         /// <seealso cref="MouseReleaseAllButtonsAsync"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
-        public Task MouseReleaseButtonAsync(SerialSymbols.MouseButton button)
+        public Task MouseReleaseButtonAsync(MouseButton button)
         {
             CheckMouseButton(button);
             SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, (byte)button);
@@ -197,7 +210,7 @@ namespace SerialKeyboardMouse
         /// <summary>
         /// Release all mouse's buttons with blocking I/O.
         /// </summary>
-        /// <see cref="SerialSymbols.MouseButton"/>
+        /// <see cref="MouseButton"/>
         /// <seealso cref="MousePressButtonAsync"/>
         /// <seealso cref="MouseReleaseButtonAsync"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
@@ -211,7 +224,7 @@ namespace SerialKeyboardMouse
         /// <summary>
         /// Release all mouse's buttons with async I/O.
         /// </summary>
-        /// <see cref="SerialSymbols.MouseButton"/>
+        /// <see cref="MouseButton"/>
         /// <seealso cref="MousePressButtonAsync"/>
         /// <seealso cref="MouseReleaseButtonAsync"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
@@ -229,11 +242,11 @@ namespace SerialKeyboardMouse
         /// <seealso cref="KeyboardReleaseAllAsync"/>
         /// <seealso cref="HidHelper.GetHidUsageFromPs2Set1"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
-        public void KeyboardPress(byte key)
+        public void KeyboardPress(HidKeyboardUsage key)
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardPress, key);
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardPress, (byte)key);
             _sender.SendFrame(frame);
-            _keyboardKeyStates[key] = true;
+            _keyboardKeyStates[(int)key] = true;
         }
 
         /// <summary>
@@ -244,10 +257,10 @@ namespace SerialKeyboardMouse
         /// <seealso cref="KeyboardReleaseAllAsync"/>
         /// <seealso cref="HidHelper.GetHidUsageFromPs2Set1"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
-        public Task KeyboardPressAsync(byte key)
+        public Task KeyboardPressAsync(HidKeyboardUsage key)
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardPress, key);
-            return _sender.SendFrameAsync(frame).ContinueWith(task => _keyboardKeyStates[key] = true);
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardPress, (byte)key);
+            return _sender.SendFrameAsync(frame).ContinueWith(task => _keyboardKeyStates[(int)key] = true);
         }
 
         /// <summary>
@@ -258,11 +271,11 @@ namespace SerialKeyboardMouse
         /// <seealso cref="KeyboardReleaseAllAsync"/>
         /// <seealso cref="HidHelper.GetHidUsageFromPs2Set1"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
-        public void KeyboardRelease(byte key)
+        public void KeyboardRelease(HidKeyboardUsage key)
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, key);
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, (byte)key);
             _sender.SendFrame(frame);
-            _keyboardKeyStates[key] = false;
+            _keyboardKeyStates[(int)key] = false;
         }
 
         /// <summary>
@@ -273,10 +286,10 @@ namespace SerialKeyboardMouse
         /// <seealso cref="KeyboardReleaseAllAsync"/>
         /// <seealso cref="HidHelper.GetHidUsageFromPs2Set1"/>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
-        public Task KeyboardReleaseAsync(byte key)
+        public Task KeyboardReleaseAsync(HidKeyboardUsage key)
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, key);
-            return _sender.SendFrameAsync(frame).ContinueWith(task => _keyboardKeyStates[key] = false);
+            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, (byte)key);
+            return _sender.SendFrameAsync(frame).ContinueWith(task => _keyboardKeyStates[(int)key] = false);
         }
 
         /// <summary>
@@ -309,15 +322,15 @@ namespace SerialKeyboardMouse
         /// <summary>
         /// Return true if a key is currently pressed.
         /// </summary>
-        public bool KeyboardIsPressed(byte key)
+        public bool KeyboardIsPressed(HidKeyboardUsage key)
         {
-            return _keyboardKeyStates[key];
+            return _keyboardKeyStates[(int)key];
         }
 
         /// <summary>
         /// Helper function to check mouse button and throw exception.
         /// </summary>
-        private static void CheckMouseButton(SerialSymbols.MouseButton button)
+        private static void CheckMouseButton(MouseButton button)
         {
             if (!Enum.IsDefined(button))
             {
@@ -327,14 +340,26 @@ namespace SerialKeyboardMouse
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!_disposedValue)
+            if (_disposedValue)
             {
-                if (disposing)
-                {
-                    _sender.Dispose();
-                }
-                _disposedValue = true;
+                return;
             }
+            if (disposing)
+            {
+                // Try to release all keys/buttons
+                try
+                {
+                    KeyboardReleaseAll();
+                    MouseReleaseAllButtons();
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+
+                _sender.Dispose();
+            }
+            _disposedValue = true;
         }
 
         public void Dispose()

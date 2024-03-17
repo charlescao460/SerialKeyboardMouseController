@@ -64,6 +64,11 @@ namespace SerialKeyboardMouse.Serial
         /// </summary>
         public bool EnableMouseMoveRetryDelay { get; set; } = false;
 
+        /// <summary>
+        /// Event will be raised when we about to send a new HID report through hardware.
+        /// </summary>
+        public event KeyboardMouseEvent OnSendingReport;
+
         public ReliableFrameSender(ISerialAdaptor serial)
         {
             _serial = serial ?? throw new ArgumentNullException(nameof(serial));
@@ -170,6 +175,10 @@ namespace SerialKeyboardMouse.Serial
             {
                 lock (_serial)
                 {
+                    if (OnSendingReport != null)
+                    {
+                        Task.Run(() => OnSendingReport.Invoke(new KeyboardMouseEventArgs(DateTime.Now, toSend.Info)));
+                    }
                     try
                     {
                         // Send command
@@ -269,14 +278,14 @@ namespace SerialKeyboardMouse.Serial
             {
                 if (disposing)
                 {
-                    _serial.Dispose();
-                    _threadTrigger.Dispose();
                     _shouldExit = true;
                     _threadTrigger.Set();
                     if (!_thread.Join(1000))
                     {
                         throw new Exception("Failed to terminate serial sender thread.");
                     }
+                    _threadTrigger.Dispose();
+                    _serial.Dispose();
                 }
                 _disposedValue = true;
             }

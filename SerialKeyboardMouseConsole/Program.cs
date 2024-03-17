@@ -25,6 +25,9 @@ namespace SerialKeyboardMouseConsole
 
             [Option(shortName: 'h', longName: "height", Required = false, Default = 1080, HelpText = "Height of absolute mouse")]
             public int Height { get; set; }
+
+            [Option(shortName: 't', longName: "timing", Required = false, Default = false, HelpText = "Whether to show the date time logging of the operations")]
+            public bool TimedLogging { get; set; }
         }
 
         static int Main(string[] args)
@@ -102,17 +105,17 @@ namespace SerialKeyboardMouseConsole
 
         private static void MousePressReleaseHelper(MouseEventArgs e, bool isPress)
         {
-            SerialSymbols.MouseButton button;
+            MouseButton button;
             switch (e.Button)
             {
                 case MouseButtons.Right:
-                    button = SerialSymbols.MouseButton.Right;
+                    button = SerialKeyboardMouse.MouseButton.Right;
                     break;
                 case MouseButtons.Left:
-                    button = SerialSymbols.MouseButton.Left;
+                    button = SerialKeyboardMouse.MouseButton.Left;
                     break;
                 case MouseButtons.Middle:
-                    button = SerialSymbols.MouseButton.Middle;
+                    button = SerialKeyboardMouse.MouseButton.Middle;
                     break;
                 default:
                     return;
@@ -144,7 +147,7 @@ namespace SerialKeyboardMouseConsole
         private static void KeyboardPressReleaseHelper(KeyEventArgs e, bool isPress)
         {
             uint ps2ScanCode = MapVirtualKeyA((uint)e.KeyValue, 0);
-            byte hidScanCode = HidHelper.GetHidUsageFromPs2Set1(ps2ScanCode);
+            var hidScanCode = HidHelper.GetHidUsageFromPs2Set1(ps2ScanCode);
             if (isPress && _keyboardMouse.KeyboardIsPressed(hidScanCode))
             {
                 return;
@@ -174,7 +177,7 @@ namespace SerialKeyboardMouseConsole
             }
             GeneralPurposeStopwatch.Stop();
             Console.Write(isPress ? "Press" : "Release");
-            Console.WriteLine($" keyboard HID=0x{hidScanCode:X2}, PS/2=0x{ps2ScanCode:X2}, Win32VK=0x{e.KeyValue:X2}. Timing: {GeneralPurposeStopwatch.ElapsedMicrosecond()} us.");
+            Console.WriteLine($" keyboard HID=0x{(int)hidScanCode:X2}, PS/2=0x{ps2ScanCode:X2}, Win32VK=0x{e.KeyValue:X2}. Timing: {GeneralPurposeStopwatch.ElapsedMicrosecond()} us.");
         }
 
         private static void MouseScrollEventHandler(object sender, MouseEventArgs e)
@@ -236,6 +239,14 @@ namespace SerialKeyboardMouseConsole
                 _form.Dispose();
                 System.Environment.Exit(0);
             };
+
+            if (options.TimedLogging)
+            {
+                _keyboardMouse.OnOperation += (e) =>
+                {
+                    Console.Write($"{e.Time:HH:mm:ss.ffffff} - {e.Info}   ");
+                };
+            }
 
             _form.MouseMove += MouseMoveEventHandler;
             _form.MouseWheel += MouseScrollEventHandler;

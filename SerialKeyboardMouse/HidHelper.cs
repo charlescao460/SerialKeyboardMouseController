@@ -27,130 +27,256 @@
 */
 
 using System;
+using static SerialKeyboardMouse.HidHelper;
+using System.Collections.Generic;
 
 namespace SerialKeyboardMouse
 {
 
     public class HidHelper
     {
+        private static readonly Dictionary<int, HidKeyboardUsage> WinFormsToHidMap = new()
+        {
+            // Alphanumeric keys
+            { 65, HidKeyboardUsage.A },
+            { 66, HidKeyboardUsage.B },
+            { 67, HidKeyboardUsage.C },
+            { 68, HidKeyboardUsage.D },
+            { 69, HidKeyboardUsage.E },
+            { 70, HidKeyboardUsage.F },
+            { 71, HidKeyboardUsage.G },
+            { 72, HidKeyboardUsage.H },
+            { 73, HidKeyboardUsage.I },
+            { 74, HidKeyboardUsage.J },
+            { 75, HidKeyboardUsage.K },
+            { 76, HidKeyboardUsage.L },
+            { 77, HidKeyboardUsage.M },
+            { 78, HidKeyboardUsage.N },
+            { 79, HidKeyboardUsage.O },
+            { 80, HidKeyboardUsage.P },
+            { 81, HidKeyboardUsage.Q },
+            { 82, HidKeyboardUsage.R },
+            { 83, HidKeyboardUsage.S },
+            { 84, HidKeyboardUsage.T },
+            { 85, HidKeyboardUsage.U },
+            { 86, HidKeyboardUsage.V },
+            { 87, HidKeyboardUsage.W },
+            { 88, HidKeyboardUsage.X },
+            { 89, HidKeyboardUsage.Y },
+            { 90, HidKeyboardUsage.Z },
+            { 48, HidKeyboardUsage.Num0 },
+            { 49, HidKeyboardUsage.Num1 },
+            { 50, HidKeyboardUsage.Num2 },
+            { 51, HidKeyboardUsage.Num3 },
+            { 52, HidKeyboardUsage.Num4 },
+            { 53, HidKeyboardUsage.Num5 },
+            { 54, HidKeyboardUsage.Num6 },
+            { 55, HidKeyboardUsage.Num7 },
+            { 56, HidKeyboardUsage.Num8 },
+            { 57, HidKeyboardUsage.Num9 },
+
+            // Punctuation keys
+            { 186, HidKeyboardUsage.Semicolon },
+            { 187, HidKeyboardUsage.Equals },
+            { 188, HidKeyboardUsage.Comma },
+            { 189, HidKeyboardUsage.Minus },
+            { 190, HidKeyboardUsage.Period },
+            { 191, HidKeyboardUsage.Slash },
+            { 192, HidKeyboardUsage.GraveAccent },
+            { 219, HidKeyboardUsage.LeftBracket },
+            { 220, HidKeyboardUsage.Backslash },
+            { 221, HidKeyboardUsage.RightBracket },
+            { 222, HidKeyboardUsage.Quote },
+
+            // Function keys
+            { 112, HidKeyboardUsage.F1 },
+            { 113, HidKeyboardUsage.F2 },
+            { 114, HidKeyboardUsage.F3 },
+            { 115, HidKeyboardUsage.F4 },
+            { 116, HidKeyboardUsage.F5 },
+            { 117, HidKeyboardUsage.F6 },
+            { 118, HidKeyboardUsage.F7 },
+            { 119, HidKeyboardUsage.F8 },
+            { 120, HidKeyboardUsage.F9 },
+            { 121, HidKeyboardUsage.F10 },
+            { 122, HidKeyboardUsage.F11 },
+            { 123, HidKeyboardUsage.F12 },
+
+            // Special keys
+            { 8, HidKeyboardUsage.Backspace },
+            { 9, HidKeyboardUsage.Tab },
+            { 13, HidKeyboardUsage.Enter },
+            { 16, HidKeyboardUsage.LeftShift },
+            { 17, HidKeyboardUsage.LeftControl },
+            { 18, HidKeyboardUsage.LeftAlt },
+            { 19, HidKeyboardUsage.Pause },
+            { 20, HidKeyboardUsage.CapsLock },
+            { 27, HidKeyboardUsage.Escape },
+            { 32, HidKeyboardUsage.Space },
+            { 33, HidKeyboardUsage.PageUp },
+            { 34, HidKeyboardUsage.PageDown },
+            { 35, HidKeyboardUsage.End },
+            { 36, HidKeyboardUsage.Home },
+            { 37, HidKeyboardUsage.LeftArrow },
+            { 38, HidKeyboardUsage.UpArrow },
+            { 39, HidKeyboardUsage.RightArrow },
+            { 40, HidKeyboardUsage.DownArrow },
+            { 45, HidKeyboardUsage.Insert },
+            { 46, HidKeyboardUsage.DeleteForward },
+
+            // Numpad keys
+            { 96, HidKeyboardUsage.Keypad0 },
+            { 97, HidKeyboardUsage.Keypad1 },
+            { 98, HidKeyboardUsage.Keypad2 },
+            { 99, HidKeyboardUsage.Keypad3 },
+            { 100, HidKeyboardUsage.Keypad4 },
+            { 101, HidKeyboardUsage.Keypad5 },
+            { 102, HidKeyboardUsage.Keypad6 },
+            { 103, HidKeyboardUsage.Keypad7 },
+            { 104, HidKeyboardUsage.Keypad8 },
+            { 105, HidKeyboardUsage.Keypad9 },
+            { 106, HidKeyboardUsage.KeypadMultiply },
+            { 107, HidKeyboardUsage.KeypadPlus },
+            { 109, HidKeyboardUsage.KeypadMinus },
+            { 110, HidKeyboardUsage.KeypadPeriod },
+            { 111, HidKeyboardUsage.KeypadDivide },
+            { 144, HidKeyboardUsage.NumLock },
+            { 145, HidKeyboardUsage.ScrollLock },
+
+            // Modifier keys
+            { 160, HidKeyboardUsage.LeftShift },
+            { 161, HidKeyboardUsage.RightShift },
+            { 162, HidKeyboardUsage.LeftControl },
+            { 163, HidKeyboardUsage.RightControl },
+            { 164, HidKeyboardUsage.LeftAlt },
+            { 165, HidKeyboardUsage.RightAlt },
+        };
+
+        private static readonly Dictionary<uint, HidKeyboardUsage> Ps2Set1ToHidMap = new()
+        {
+            // Alphanumeric Keys
+            { 0x1E, HidKeyboardUsage.A },
+            { 0x30, HidKeyboardUsage.B },
+            { 0x2E, HidKeyboardUsage.C },
+            { 0x20, HidKeyboardUsage.D },
+            { 0x12, HidKeyboardUsage.E },
+            { 0x21, HidKeyboardUsage.F },
+            { 0x22, HidKeyboardUsage.G },
+            { 0x23, HidKeyboardUsage.H },
+            { 0x17, HidKeyboardUsage.I },
+            { 0x24, HidKeyboardUsage.J },
+            { 0x25, HidKeyboardUsage.K },
+            { 0x26, HidKeyboardUsage.L },
+            { 0x32, HidKeyboardUsage.M },
+            { 0x31, HidKeyboardUsage.N },
+            { 0x18, HidKeyboardUsage.O },
+            { 0x19, HidKeyboardUsage.P },
+            { 0x10, HidKeyboardUsage.Q },
+            { 0x13, HidKeyboardUsage.R },
+            { 0x1F, HidKeyboardUsage.S },
+            { 0x14, HidKeyboardUsage.T },
+            { 0x16, HidKeyboardUsage.U },
+            { 0x2F, HidKeyboardUsage.V },
+            { 0x11, HidKeyboardUsage.W },
+            { 0x2D, HidKeyboardUsage.X },
+            { 0x15, HidKeyboardUsage.Y },
+            { 0x2C, HidKeyboardUsage.Z },
+
+            // Numeric Keys
+            { 0x0B, HidKeyboardUsage.Num0 },
+            { 0x02, HidKeyboardUsage.Num1 },
+            { 0x03, HidKeyboardUsage.Num2 },
+            { 0x04, HidKeyboardUsage.Num3 },
+            { 0x05, HidKeyboardUsage.Num4 },
+            { 0x06, HidKeyboardUsage.Num5 },
+            { 0x07, HidKeyboardUsage.Num6 },
+            { 0x08, HidKeyboardUsage.Num7 },
+            { 0x09, HidKeyboardUsage.Num8 },
+            { 0x0A, HidKeyboardUsage.Num9 },
+
+            // Punctuation Keys
+            { 0x29, HidKeyboardUsage.GraveAccent }, // ` and ~
+            { 0x0C, HidKeyboardUsage.Minus }, // - and _
+            { 0x0D, HidKeyboardUsage.Equals }, // = and +
+            { 0x1A, HidKeyboardUsage.LeftBracket }, // [ and {
+            { 0x1B, HidKeyboardUsage.RightBracket }, // ] and }
+            { 0x2B, HidKeyboardUsage.Backslash }, // \ and |
+            { 0x27, HidKeyboardUsage.Semicolon }, // ; and :
+            { 0x28, HidKeyboardUsage.Quote }, // ' and "
+            { 0x33, HidKeyboardUsage.Comma }, // , and <
+            { 0x34, HidKeyboardUsage.Period }, // . and >
+            { 0x35, HidKeyboardUsage.Slash }, // / and ?
+
+            // Function Keys
+            { 0x3B, HidKeyboardUsage.F1 },
+            { 0x3C, HidKeyboardUsage.F2 },
+            { 0x3D, HidKeyboardUsage.F3 },
+            { 0x3E, HidKeyboardUsage.F4 },
+            { 0x3F, HidKeyboardUsage.F5 },
+            { 0x40, HidKeyboardUsage.F6 },
+            { 0x41, HidKeyboardUsage.F7 },
+            { 0x42, HidKeyboardUsage.F8 },
+            { 0x43, HidKeyboardUsage.F9 },
+            { 0x44, HidKeyboardUsage.F10 },
+            { 0x57, HidKeyboardUsage.F11 },
+            { 0x58, HidKeyboardUsage.F12 },
+
+            // Control Keys
+            { 0x1C, HidKeyboardUsage.Enter },
+            { 0x1D, HidKeyboardUsage.LeftControl },
+            { 0x2A, HidKeyboardUsage.LeftShift },
+            { 0x36, HidKeyboardUsage.RightShift },
+            { 0x38, HidKeyboardUsage.LeftAlt },
+            { 0x39, HidKeyboardUsage.Space },
+            { 0x0E, HidKeyboardUsage.Backspace },
+            { 0x0F, HidKeyboardUsage.Tab },
+            { 0x3A, HidKeyboardUsage.CapsLock },
+            { 0x45, HidKeyboardUsage.NumLock },
+            { 0x46, HidKeyboardUsage.ScrollLock },
+            { 0x01, HidKeyboardUsage.Escape },
+            { 0x54, HidKeyboardUsage.PrintScreen },
+
+            // Numpad Keys
+            { 0x47, HidKeyboardUsage.Keypad7 },
+            { 0x48, HidKeyboardUsage.Keypad8 },
+            { 0x49, HidKeyboardUsage.Keypad9 },
+            { 0x4B, HidKeyboardUsage.Keypad4 },
+            { 0x4C, HidKeyboardUsage.Keypad5 },
+            { 0x4D, HidKeyboardUsage.Keypad6 },
+            { 0x4F, HidKeyboardUsage.Keypad1 },
+            { 0x50, HidKeyboardUsage.Keypad2 },
+            { 0x51, HidKeyboardUsage.Keypad3 },
+            { 0x52, HidKeyboardUsage.Keypad0 },
+            { 0x53, HidKeyboardUsage.KeypadPeriod },
+            { 0xE035, HidKeyboardUsage.KeypadDivide }, // Keypad Divide
+            { 0xE037, HidKeyboardUsage.KeypadMultiply }, // Keypad Multiply
+            { 0xE04A, HidKeyboardUsage.KeypadMinus }, // Keypad Minus
+            { 0xE04E, HidKeyboardUsage.KeypadPlus }, // Keypad Plus
+
+            // Navigation keys and others
+            { 0xE01C, HidKeyboardUsage.KeypadEnter }, // Keypad Enter
+            { 0xE048, HidKeyboardUsage.UpArrow }, // Up Arrow
+            { 0xE050, HidKeyboardUsage.DownArrow }, // Down Arrow
+            { 0xE04B, HidKeyboardUsage.LeftArrow }, // Left Arrow
+            { 0xE04D, HidKeyboardUsage.RightArrow }, // Right Arrow
+            { 0xE049, HidKeyboardUsage.PageUp }, // Page Up
+            { 0xE051, HidKeyboardUsage.PageDown }, // Page Down
+            { 0xE04F, HidKeyboardUsage.End }, // End
+            { 0xE052, HidKeyboardUsage.Insert }, // Insert
+            { 0xE053, HidKeyboardUsage.DeleteForward }, // Delete
+            { 0xE047, HidKeyboardUsage.Home }, // Home
+            { 0x5B, HidKeyboardUsage.LeftWindows },
+            { 0x5C, HidKeyboardUsage.RightWindows },
+        };
+
         /// <summary>
         /// Return HID usage id from System.Windows.Forms.Keys
         /// </summary>
         /// <param name="winFormKeys">System.Windows.Forms.Keys Enum</param>
         /// <returns>HID usage id</returns>
-        public static byte GetHidUsageFromWinforms(int winFormKeys)
+        public static HidKeyboardUsage GetHidUsageFromWinforms(int winFormKeys)
         {
-            switch (winFormKeys)
-            {
-                case 0x00: return 0x00;  // Not used
-                case 192: return 0x35;  // Key location 1  ( ~ ` )
-                case 49: return 0x1E;  // Key location 2  ( ! 1 )
-                case 50: return 0x1F;  // Key location 3  ( @ 2 )
-                case 51: return 0x20;  // Key location 4  ( # 3 )
-                case 52: return 0x21;  // Key location 5  ( $ 4 )
-                case 53: return 0x22;  // Key location 6  ( % 5 )
-                case 54: return 0x23;  // Key location 7  ( ^ 6 )
-                case 55: return 0x24;  // Key location 8  ( & 7 )
-                case 56: return 0x25;  // Key location 9  ( * 8 )
-                case 57: return 0x26;  // Key location 10 ( ( 9 )
-                case 48: return 0x27;  // Key location 11 ( ) 0 )
-                case 189: return 0x2D;  // Key location 12 ( _ - )
-                case 187: return 0x2E;  // Key location 13 ( + = )
-                case 8: return 0x2A;  // Key location 15 ( Backspace )
-                case 9: return 0x2B;  // Key location 16 ( Tab )
-                case 81: return 0x14;  // Key location 17 ( Q )
-                case 87: return 0x1A;  // Key location 18 ( W )
-                case 69: return 0x08;  // Key location 19 ( E )
-                case 82: return 0x15;  // Key location 20 ( R )
-                case 84: return 0x17;  // Key location 21 ( T )
-                case 89: return 0x1C;  // Key location 22 ( Y )
-                case 85: return 0x18;  // Key location 23 ( U )
-                case 73: return 0x0C;  // Key location 24 ( I )
-                case 79: return 0x12;  // Key location 25 ( O )
-                case 80: return 0x13;  // Key location 26 ( P )
-                case 219: return 0x2F;  // Key location 27 ( { [ )
-                case 221: return 0x30;  // Key location 28 ( } ] )
-                case 220: return 0x31;  // Key location 29* ( | \ )
-                case 20: return 0x39;  // Key location 30 ( Caps Lock )
-                case 65: return 0x04;  // Key location 31 ( A )
-                case 83: return 0x16;  // Key location 32 ( S )
-                case 68: return 0x07;  // Key location 33 ( D )
-                case 70: return 0x09;  // Key location 34 ( F )
-                case 71: return 0x0A;  // Key location 35 ( G )
-                case 72: return 0x0B;  // Key location 36 ( H )
-                case 74: return 0x0D;  // Key location 37 ( J )
-                case 75: return 0x0E;  // Key location 38 ( K )
-                case 76: return 0x0F;  // Key location 39 ( L )
-                case 186: return 0x33;  // Key location 40 ( : ; )
-                case 222: return 0x34;  // Key location 41 ( “ ‘ )
-                case 13: return 0x28;  // Key location 43 ( Enter )
-                case 160: return 0xE1;  // Key location 44 ( L SHIFT )
-                case 90: return 0x1D;  // Key location 46 ( Z )
-                case 88: return 0x1B;  // Key location 47 ( X )
-                case 67: return 0x06;  // Key location 48 ( C )
-                case 86: return 0x19;  // Key location 49 ( V )
-                case 66: return 0x05;  // Key location 50 ( B )
-                case 78: return 0x11;  // Key location 51 ( N )
-                case 77: return 0x10;  // Key location 52 ( M )
-                case 188: return 0x36;  // Key location 53 ( < , )
-                case 190: return 0x37;  // Key location 54 ( > . )
-                case 191: return 0x38;  // Key location 55 ( ? / )
-                case 161: return 0xE5;  // Key location 57 ( R SHIFT )
-                case 162: return 0xE0;  // Key location 58 ( L CTRL )
-                case 91: return 0xE3; // Key location 59 ( L WIN )
-                case 164: return 0xE2; // Key location 60 ( L ALT )
-                case 32: return 0x2C; // Key location 61 ( Space Bar )
-                case 165: return 0xE6; // Key location 62 ( R ALT )
-                case 92: return 0xE7; // Key location 63 ( R WIN )
-                case 163: return 0xE4; // Key location 64 ( R CTRL )
-                case 93: return 0x65; // Key location 65 ( APP )
-                case 45: return 0x49; // Key location 75 ( Insert )
-                case 46: return 0x4C; // Key location 76 ( Delete )
-                case 37: return 0x50; // Key location 79 ( Left Arrow )
-                case 36: return 0x4A; // Key location 80 ( Home )
-                case 35: return 0x4D; // Key location 81 ( End )
-                case 38: return 0x52; // Key location 83 ( Up Arrow )
-                case 40: return 0x51; // Key location 84 ( Dn Arrow )
-                case 33: return 0x4B; // Key location 85 ( Page Up )
-                case 34: return 0x4E; // Key location 86 ( Page Down )
-                case 39: return 0x4F; // Key location 89 ( Right Arrow )
-                case 144: return 0x53; // Key location 90 ( Num Lock )
-                case 103: return 0x5F; // Key location 91 ( Numeric 7 )
-                case 100: return 0x5C; // Key location 92 ( Numeric 4 )
-                case 97: return 0x59; // Key location 93 ( Numeric 1 )
-                case 111: return 0x54; // Key location 95 ( Numeric / )
-                case 104: return 0x60; // Key location 96 ( Numeric 8 )
-                case 101: return 0x5D; // Key location 97 ( Numeric 5 )
-                case 98: return 0x5A; // Key location 98 ( Numeric 2 )
-                case 96: return 0x62; // Key location 99 ( Numeric 0 )
-                case 106: return 0x55; // Key location 100 ( Numeric * )
-                case 105: return 0x61; // Key location 101 ( Numeric 9 )
-                case 102: return 0x5E; // Key location 102 ( Numeric 6 )
-                case 99: return 0x5B; // Key location 103 ( Numeric 3 )
-                case 110: return 0x63; // Key location 104 ( Numeric . )
-                case 109: return 0x56; // Key location 105 ( Numeric - )
-                case 107: return 0x57; // Key location 106 ( Numeric + )
-                //case 0x7E: return 0x85; // Key location 107 ( NONE ) ***
-                //case 0xE01C: return 0x58; // Key location 108 ( Numeric Enter )
-                case 27: return 0x29; // Key location 110 ( Esc )
-                case 112: return 0x3A; // Key location 112 ( F1 )
-                case 113: return 0x3B; // Key location 113 ( F2 )
-                case 114: return 0x3C; // Key location 114 ( F3 )
-                case 115: return 0x3D; // Key location 115 ( F4 )
-                case 116: return 0x3E; // Key location 116 ( F5 )
-                case 117: return 0x3F; // Key location 117 ( F6 )
-                case 118: return 0x40; // Key location 118 ( F7 )
-                case 119: return 0x41; // Key location 119 ( F8 )
-                case 120: return 0x42; // Key location 120 ( F9 )
-                case 121: return 0x43; // Key location 121 ( F10 )
-                case 122: return 0x44; // Key location 122 ( F11 )
-                case 123: return 0x45; // Key location 123 ( F12 )
-                case 44: return 0x46; // Key location 124 ( Print Screen )
-                case 145: return 0x47; // Key location 125 ( Scroll Lock )
-                case 19: return 0x48; // Key location 126 ( Pause )
-                default:
-                    return 0x00;
-            }
+            return WinFormsToHidMap.GetValueOrDefault(winFormKeys, HidKeyboardUsage.Undefined);
         }
 
         /// <summary>
@@ -158,162 +284,9 @@ namespace SerialKeyboardMouse
         /// </summary>
         /// <param name="ps2Set1ScanCode">PS/2 Set 1 scan code</param>
         /// <returns>HID usage id</returns>
-        public static byte GetHidUsageFromPs2Set1(uint ps2Set1ScanCode)
+        public static HidKeyboardUsage GetHidUsageFromPs2Set1(uint ps2Set1ScanCode)
         {
-            switch (ps2Set1ScanCode)
-            {
-                case 0x00: return 0x00;  // Not used
-                case 0x29: return 0x35;  // Key location 1  ( ~ ` )
-                case 0x02: return 0x1E;  // Key location 2  ( ! 1 )
-                case 0x03: return 0x1F;  // Key location 3  ( @ 2 )
-                case 0x04: return 0x20;  // Key location 4  ( # 3 )
-                case 0x05: return 0x21;  // Key location 5  ( $ 4 )
-                case 0x06: return 0x22;  // Key location 6  ( % 5 )
-                case 0x07: return 0x23;  // Key location 7  ( ^ 6 )
-                case 0x08: return 0x24;  // Key location 8  ( & 7 )
-                case 0x09: return 0x25;  // Key location 9  ( * 8 )
-                case 0x0A: return 0x26;  // Key location 10 ( ( 9 )
-                case 0x0B: return 0x27;  // Key location 11 ( ) 0 )
-                case 0x0C: return 0x2D;  // Key location 12 ( _ - )
-                case 0x0D: return 0x2E;  // Key location 13 ( + = )
-                case 0x0E: return 0x2A;  // Key location 15 ( Backspace )
-                case 0x0F: return 0x2B;  // Key location 16 ( Tab )
-                case 0x10: return 0x14;  // Key location 17 ( Q )
-                case 0x11: return 0x1A;  // Key location 18 ( W )
-                case 0x12: return 0x08;  // Key location 19 ( E )
-                case 0x13: return 0x15;  // Key location 20 ( R )
-                case 0x14: return 0x17;  // Key location 21 ( T )
-                case 0x15: return 0x1C;  // Key location 22 ( Y )
-                case 0x16: return 0x18;  // Key location 23 ( U )
-                case 0x17: return 0x0C;  // Key location 24 ( I )
-                case 0x18: return 0x12;  // Key location 25 ( O )
-                case 0x19: return 0x13;  // Key location 26 ( P )
-                case 0x1A: return 0x2F;  // Key location 27 ( { [ )
-                case 0x1B: return 0x30;  // Key location 28 ( } ] )
-                case 0x2B: return 0x31;  // Key location 29* ( | \ )
-                case 0x3A: return 0x39;  // Key location 30 ( Caps Lock )
-                case 0x1E: return 0x04;  // Key location 31 ( A )
-                case 0x1F: return 0x16;  // Key location 32 ( S )
-                case 0x20: return 0x07;  // Key location 33 ( D )
-                case 0x21: return 0x09;  // Key location 34 ( F )
-                case 0x22: return 0x0A;  // Key location 35 ( G )
-                case 0x23: return 0x0B;  // Key location 36 ( H )
-                case 0x24: return 0x0D;  // Key location 37 ( J )
-                case 0x25: return 0x0E;  // Key location 38 ( K )
-                case 0x26: return 0x0F;  // Key location 39 ( L )
-                case 0x27: return 0x33;  // Key location 40 ( : ; )
-                case 0x28: return 0x34;  // Key location 41 ( “ ‘ )
-                case 0x1C: return 0x28;  // Key location 43 ( Enter )
-                case 0x2A: return 0xE1;  // Key location 44 ( L SHIFT )
-                case 0x56: return 0x64;  // Key location 45 ( NONE ) **
-                case 0x2C: return 0x1D;  // Key location 46 ( Z )
-                case 0x2D: return 0x1B;  // Key location 47 ( X )
-                case 0x2E: return 0x06;  // Key location 48 ( C )
-                case 0x2F: return 0x19;  // Key location 49 ( V )
-                case 0x30: return 0x05;  // Key location 50 ( B )
-                case 0x31: return 0x11;  // Key location 51 ( N )
-                case 0x32: return 0x10;  // Key location 52 ( M )
-                case 0x33: return 0x36;  // Key location 53 ( < , )
-                case 0x34: return 0x37;  // Key location 54 ( > . )
-                case 0x35: return 0x38;  // Key location 55 ( ? / )
-                case 0x73: return 0x87;  // Key location 56 ( NONE ) ***
-                case 0x36: return 0xE5;  // Key location 57 ( R SHIFT )
-                case 0x1D: return 0xE0;  // Key location 58 ( L CTRL )
-                case 0xE05B: return 0xE3; // Key location 59 ( L WIN )
-                case 0x38: return 0xE2; // Key location 60 ( L ALT )
-                case 0x39: return 0x2C; // Key location 61 ( Space Bar )
-                case 0xE038: return 0xE6; // Key location 62 ( R ALT )
-                case 0xE05C: return 0xE7; // Key location 63 ( R WIN )
-                case 0xE01D: return 0xE4; // Key location 64 ( R CTRL )
-                case 0xE05D: return 0x65; // Key location 65 ( APP )
-                case 0xE052: return 0x49; // Key location 75 ( Insert )
-                case 0xE053: return 0x4C; // Key location 76 ( Delete )
-                case 0xE04B: return 0x50; // Key location 79 ( Left Arrow )
-                case 0xE047: return 0x4A; // Key location 80 ( Home )
-                case 0xE04F: return 0x4D; // Key location 81 ( End )
-                case 0xE048: return 0x52; // Key location 83 ( Up Arrow )
-                case 0xE050: return 0x51; // Key location 84 ( Dn Arrow )
-                case 0xE049: return 0x4B; // Key location 85 ( Page Up )
-                case 0xE051: return 0x4E; // Key location 86 ( Page Down )
-                case 0xE04D: return 0x4F; // Key location 89 ( Right Arrow )
-                case 0x45: return 0x53; // Key location 90 ( Num Lock )
-                case 0x47: return 0x5F; // Key location 91 ( Numeric 7 )
-                case 0x4B: return 0x5C; // Key location 92 ( Numeric 4 )
-                case 0x4F: return 0x59; // Key location 93 ( Numeric 1 )
-                case 0xE035: return 0x54; // Key location 95 ( Numeric / )
-                case 0x48: return 0x60; // Key location 96 ( Numeric 8 )
-                case 0x4C: return 0x5D; // Key location 97 ( Numeric 5 )
-                case 0x50: return 0x5A; // Key location 98 ( Numeric 2 )
-                case 0x52: return 0x62; // Key location 99 ( Numeric 0 )
-                case 0x37: return 0x55; // Key location 100 ( Numeric * )
-                case 0x49: return 0x61; // Key location 101 ( Numeric 9 )
-                case 0x4D: return 0x5E; // Key location 102 ( Numeric 6 )
-                case 0x51: return 0x5B; // Key location 103 ( Numeric 3 )
-                case 0x53: return 0x63; // Key location 104 ( Numeric . )
-                case 0x4A: return 0x56; // Key location 105 ( Numeric - )
-                case 0x4E: return 0x57; // Key location 106 ( Numeric + )
-                case 0x7E: return 0x85; // Key location 107 ( NONE ) ***
-                case 0xE01C: return 0x58; // Key location 108 ( Numeric Enter )
-                case 0x01: return 0x29; // Key location 110 ( Esc )
-                case 0x3B: return 0x3A; // Key location 112 ( F1 )
-                case 0x3C: return 0x3B; // Key location 113 ( F2 )
-                case 0x3D: return 0x3C; // Key location 114 ( F3 )
-                case 0x3E: return 0x3D; // Key location 115 ( F4 )
-                case 0x3F: return 0x3E; // Key location 116 ( F5 )
-                case 0x40: return 0x3F; // Key location 117 ( F6 )
-                case 0x41: return 0x40; // Key location 118 ( F7 )
-                case 0x42: return 0x41; // Key location 119 ( F8 )
-                case 0x43: return 0x42; // Key location 120 ( F9 )
-                case 0x44: return 0x43; // Key location 121 ( F10 )
-                case 0x57: return 0x44; // Key location 122 ( F11 )
-                case 0x58: return 0x45; // Key location 123 ( F12 )
-                case 0xE037: return 0x46; // Key location 124 ( Print Screen )
-                case 0x46: return 0x47; // Key location 125 ( Scroll Lock )
-                case 0xE11D45: return 0x48; // Key location 126 ( Pause )
-                case 0x5C: return 0xE7; // (Right Windows Key)
-                case 0x5B: return 0xE3; // (Left Windows Key)
-                default:
-                    return 0x00;
-            }
-        }
-
-        /// <summary>
-        /// Determine if the HID usage scan code represents a modifier key.
-        /// </summary>
-        public static bool IsMofifierKey(byte hidUsageScanCode)
-        {
-            // Modifier keys are defined as:
-            //   E0: Left Ctrl
-            //   E1: Left Shift
-            //   E2: Left Alt
-            //   E3: Left Windows Key
-            //   E4: Right Ctrl
-            //   E5: Right Shift
-            //   E6: Right Alt
-            //   E7: Right Windows Key
-            return ((hidUsageScanCode >= 0xE0) && (hidUsageScanCode <= 0xE7));
-        }
-
-        /// <summary>
-        /// Get the flag(mask) of modifier key. 
-        /// </summary>
-        public static byte GetFlagOfModifierKey(byte hidUsageScanCode)
-        {
-            if (!IsMofifierKey(hidUsageScanCode))
-            {
-                throw new ArgumentException("Key given is not a modifier key");
-            }
-
-            // Modifier keys by bit position in modifier key bitfield:
-            //   0: Left Ctrl
-            //   1: Left Shift
-            //   2: Left Alt
-            //   3: Left Windows Key
-            //   4: Right Ctrl
-            //   5: Right Shift
-            //   6: Right Alt
-            //   7: Right Windows Key
-            return (byte)(0x1 << (hidUsageScanCode - 0xE0));
+            return Ps2Set1ToHidMap.GetValueOrDefault(ps2Set1ScanCode, HidKeyboardUsage.Undefined);
         }
     }
 }
