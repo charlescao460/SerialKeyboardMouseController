@@ -91,10 +91,12 @@ namespace SerialKeyboardMouse.Serial
         /// Due to the nature of async/sync, we do not guarantee the order when mixing both async and blocking APIs.
         /// </summary>
         /// <param name="frame">Frame to be sent</param>
+        /// <param name="onSucceed">A callback which will be executed after succeed in the critical section. Useful for synchronize states. DO NOT BLOCK!</param>
         /// <exception cref="SerialDeviceException"> If timeout or exceed maximum number of retries.</exception>
-        public void SendFrame(SerialCommandFrame frame)
+        /// <returns></returns>
+        public void SendFrame(SerialCommandFrame frame, Action<DateTime> onSucceed = null)
         {
-            SendAndWaitForLoopback(frame);
+            SendAndWaitForLoopback(frame, onSucceed);
         }
 
         /// <summary>
@@ -103,15 +105,17 @@ namespace SerialKeyboardMouse.Serial
         /// Due to the nature of async/sync, we do not guarantee the order when mixing both async and blocking APIs.
         /// </summary>
         /// <param name="frame">Frame to be sent</param>
+        /// <param name="onSucceed">A callback which will be executed after succeed in the critical section. Useful for synchronize states. DO NOT BLOCK!</param>
         /// <exception cref="SerialDeviceException"> If timeout or exceed maximum number of retries.</exception>
-        public Task SendFrameAsync(SerialCommandFrame frame)
+        /// <returns></returns>
+        public Task SendFrameAsync(SerialCommandFrame frame, Action<DateTime> onSucceed = null)
         {
             if (_senderTasks.Count > MaxNumQueuedTask)
             {
                 throw new SerialDeviceException($"Too many frames ({_senderTasks.Count}) queued!");
             }
 
-            SenderTask task = new SenderTask(frame);
+            SenderTask task = new SenderTask(frame, onSucceed);
 
             if (!ValidFrameBytes(task.Frame.Bytes.Span))
             {
@@ -150,7 +154,7 @@ namespace SerialKeyboardMouse.Serial
 
                 try
                 {
-                    SendAndWaitForLoopback(toSend.Frame);
+                    SendAndWaitForLoopback(toSend.Frame, toSend.OnSucceedCallback);
                     toSend.AwaitSource.SetResult();
                 }
                 catch (Exception e)
@@ -163,24 +167,26 @@ namespace SerialKeyboardMouse.Serial
         /// <summary>
         /// Send and read the loopback of the frame bytes
         /// </summary>
-        /// <returns></returns>
-        private void SendAndWaitForLoopback(SerialCommandFrame toSend)
+        /// <param name="toSend">Task to send</param>
+        /// <param name="onSucceed">A callback which will be executed after succeed in the critical section. Useful for synchronize states. DO NOT BLOCK!</param>
+        /// <returns>The time immediately before sending the frame.</returns>
+        private void SendAndWaitForLoopback(SerialCommandFrame toSend, Action<DateTime> onSucceed)
         {
             int length = toSend.Length;
             Span<byte> bytes = toSend.Bytes.Span;
-
+            DateTime sendTime = DateTime.MinValue; // This value should not be used anyway
+            bool succeed = false;
 
             // Loop for retry
             for (int i = 0; i < NumMaxRetries; ++i)
             {
                 lock (_serial)
                 {
-                    if (OnSendingReport != null)
-                    {
-                        Task.Run(() => OnSendingReport.Invoke(new KeyboardMouseEventArgs(DateTime.Now, toSend.Info)));
-                    }
                     try
                     {
+                        // Get the time immediately before sending
+                        sendTime = DateTime.Now;
+
                         // Send command
                         _serial.Write(bytes);
 
@@ -198,7 +204,9 @@ namespace SerialKeyboardMouse.Serial
                             {
                                 if (++index == length)
                                 {
-                                    return; // If succeeded, return here.
+                                    succeed = true;
+                                    onSucceed?.Invoke(sendTime);
+                                    goto endRetryLoop; // If succeeded, break here.
                                 }
                             }
                             else
@@ -223,8 +231,16 @@ namespace SerialKeyboardMouse.Serial
                     }
                 }
             }
-
-            throw new SerialDeviceException($"Command failed or timeout after {NumMaxRetries} retries.");
+        endRetryLoop:
+            if (OnSendingReport != null)
+            {
+                // If succeeded, invoke event using the first sending time. If failed or retried, using the last sending time.
+                Task.Run(() => OnSendingReport.Invoke(new KeyboardMouseEventArgs(sendTime, toSend.Info)));
+            }
+            if (!succeed)
+            {
+                throw new SerialDeviceException($"Command failed or timeout after {NumMaxRetries} retries.");
+            }
         }
 
         private static bool ValidFrameBytes(Span<byte> span)
@@ -261,15 +277,17 @@ namespace SerialKeyboardMouse.Serial
             _threadTrigger.Set();
             if (!_thread.Join(1000))
             {
-                throw new Exception("Failed to terminate serial sender thread.");
+                throw new TimeoutException("Failed to terminate serial sender thread.");
             }
         }
 
-        private class SenderTask(SerialCommandFrame frame)
+        private class SenderTask(SerialCommandFrame frame, Action<DateTime> onSucceed)
         {
             public TaskCompletionSource AwaitSource { get; } = new();
 
-            public SerialCommandFrame Frame { get; } = frame;
+            public SerialCommandFrame Frame => frame;
+
+            public Action<DateTime> OnSucceedCallback => onSucceed;
         }
 
         protected virtual void Dispose(bool disposing)
@@ -282,7 +300,7 @@ namespace SerialKeyboardMouse.Serial
                     _threadTrigger.Set();
                     if (!_thread.Join(1000))
                     {
-                        throw new Exception("Failed to terminate serial sender thread.");
+                        throw new TimeoutException("Failed to terminate serial sender thread.");
                     }
                     _threadTrigger.Dispose();
                     _serial.Dispose();

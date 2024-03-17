@@ -16,7 +16,7 @@ namespace SerialKeyboardMouse
     /// Event arguments for Keyboard-Mouse event.
     /// Such event will be raised when we send a new HID report through hardware.
     /// </summary>
-    public class KeyboardMouseEventArgs
+    public class KeyboardMouseEventArgs : EventArgs
     {
         /// <summary>
         /// Time immediately before sending the frame to hardware through serial. 
@@ -32,6 +32,29 @@ namespace SerialKeyboardMouse
         {
             Time = time;
             Info = info;
+        }
+    }
+
+    /// <summary>
+    /// Event raised when a keyboard key or a mouse button has been pressed for a long time.
+    /// </summary>
+    public delegate void PressTimeOutEvent();
+
+    public class PressTimeOutEventArgs : EventArgs
+    {
+        public MouseButton? MouseButton { get; }
+
+        public HidKeyboardUsage? KeyboardKey { get; }
+
+        /// <summary>
+        /// Set true if you want the button or key being release after the event handler returned.
+        /// </summary>
+        public bool ShouldRelease { get; set; }
+
+        internal PressTimeOutEventArgs(MouseButton mouseButton, HidKeyboardUsage keyboardKey)
+        {
+            MouseButton = mouseButton;
+            KeyboardKey = keyboardKey;
         }
     }
 }

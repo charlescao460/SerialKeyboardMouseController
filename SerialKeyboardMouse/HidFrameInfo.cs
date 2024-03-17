@@ -31,19 +31,34 @@ namespace SerialKeyboardMouse
         Middle = 0x04
     }
 
+    /// <summary>
+    /// An informative class represents the HID state we sent to the hardware.
+    /// </summary>
     public class HidFrameInfo
     {
         public HidFrameType Type { get; }
 
+        /// <summary>
+        /// Buttons on the mouse (left, right, middle)
+        /// </summary>
         public MouseButton? MouseButton { get; }
 
 #nullable enable
+        /// <summary>
+        /// Coordinates of the absolute mouse
+        /// </summary>
         public Tuple<int, int>? MouseCoordinate { get; }
 #nullable restore
 
+        /// <summary>
+        /// Number of lines of mouse scrolling
+        /// </summary>
         public int? MouseScrollValue { get; }
 
-        public HidKeyboardUsage? KeyboardHidUsage { get; }
+        /// <summary>
+        /// HID usage code of the keyboard. Represents the key on the keyboard.
+        /// </summary>
+        public HidKeyboardUsage? KeyboardKey { get; }
 
         internal HidFrameInfo(HidFrameType type, MouseButton? mouseButton, Tuple<int, int> mouseCoordinate,
             int? mouseScrollValue, HidKeyboardUsage? keyboardHidUsage)
@@ -52,7 +67,7 @@ namespace SerialKeyboardMouse
             MouseButton = mouseButton;
             MouseCoordinate = mouseCoordinate;
             MouseScrollValue = mouseScrollValue;
-            KeyboardHidUsage = keyboardHidUsage;
+            KeyboardKey = keyboardHidUsage;
         }
 
         public override string ToString()
@@ -74,7 +89,7 @@ namespace SerialKeyboardMouse
                     return $"{Type}: {MouseButton}";
                 case HidFrameType.KeyboardPress:
                 case HidFrameType.KeyboardRelease:
-                    return $"{Type}: {KeyboardHidUsage}";
+                    return $"{Type}: {KeyboardKey}";
                 default:
                     throw new ArgumentOutOfRangeException("Invalid HID Frame Type!");
             }
