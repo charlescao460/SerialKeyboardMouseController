@@ -9,7 +9,7 @@ A software-controlled hardware USB HID keyboard &amp; mouse for everyone
 * [License](#license)
 
 ## Purpose
-This is an Arduino project with a .NET Core library allowed you to control a **real** hardware mouse &amp; keyboard without being detected by any anti-cheat or protection software. Since this system is using a real USB HID device, it’s very hard to distinguish it from normal mouses and keyboards.
+This is an Arduino project with a .NET library allowed you to control a **real** hardware mouse &amp; keyboard without being detected by any anti-cheat or protection software. Since this system is using a real USB HID device, it’s very hard to distinguish it from normal mouses and keyboards.
 
 ![](Pictures/TypicalApplication.png)
 
@@ -31,7 +31,7 @@ Be aware of baud rate timing error. Most Arduino boards are running at 16Mhz, so
 7. Connect Arduino to target computer, connect UART-USB bridge to controller computer.
 
 ## Software Deployment
-[SerialKeyboardMouse](https://github.com/charlescao460/SerialKeyboardMouseController/tree/main/SerialKeyboardMouse) is a .NET Core 5.0 library. 
+[SerialKeyboardMouse](https://github.com/charlescao460/SerialKeyboardMouseController/tree/main/SerialKeyboardMouse) is a .NET library. 
 It is cross-platform, with serial driver supported by .NET's `System.IO.Ports` package. So you can deploy it to a embedded Linux device, implementing an Edge AI game-bot.
 
 A demo program [SerialKeyboardMouseConsole](https://github.com/charlescao460/SerialKeyboardMouseController/tree/main/SerialKeyboardMouseConsole) was written in WinForms, 
