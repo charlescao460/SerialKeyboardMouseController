@@ -52,6 +52,7 @@ namespace SerialKeyboardMouse.Serial
         private readonly Random _random;
         private SpinWait _spinWait;
         private readonly Stopwatch _loopBackStopwatch;
+        private SpinLock _serialLock;
 
         /// <summary>
         /// Enable the delay between retries of all key/button operations. Default is true.
@@ -78,6 +79,7 @@ namespace SerialKeyboardMouse.Serial
             _random = new Random();
             _spinWait = new SpinWait();
             _loopBackStopwatch = new Stopwatch();
+            _serialLock = new SpinLock();
             _thread = new Thread(ThreadLoop)
             {
                 Priority = ThreadPriority.Highest
@@ -96,7 +98,22 @@ namespace SerialKeyboardMouse.Serial
         /// <returns></returns>
         public void SendFrame(SerialCommandFrame frame, Action<DateTime> onSucceed = null)
         {
-            SendAndWaitForLoopback(frame, onSucceed);
+            bool locked = false;
+            try
+            {
+                while (!locked)
+                {
+                    _serialLock.Enter(ref locked);
+                }
+                SendAndWaitForLoopback(frame, onSucceed);
+            }
+            finally
+            {
+                if (locked)
+                {
+                    _serialLock.Exit();
+                }
+            }
         }
 
         /// <summary>
@@ -151,15 +168,26 @@ namespace SerialKeyboardMouse.Serial
                     }
                     continue;
                 }
-
+                bool locked = false;
                 try
                 {
+                    while (!locked)
+                    {
+                        _serialLock.Enter(ref locked);
+                    }
                     SendAndWaitForLoopback(toSend.Frame, toSend.OnSucceedCallback);
                     toSend.AwaitSource.SetResult();
                 }
                 catch (Exception e)
                 {
                     toSend.AwaitSource.SetException(e);
+                }
+                finally
+                {
+                    if (locked)
+                    {
+                        _serialLock.Exit();
+                    }
                 }
             }
         }
@@ -180,55 +208,52 @@ namespace SerialKeyboardMouse.Serial
             // Loop for retry
             for (int i = 0; i < NumMaxRetries; ++i)
             {
-                lock (_serial)
+                try
                 {
-                    try
+                    // Get the time immediately before sending
+                    sendTime = DateTime.Now;
+
+                    // Send command
+                    _serial.Write(bytes);
+
+                    // Start timer
+                    _loopBackStopwatch.Restart();
+
+                    // Wait loop back
+                    int index = 0;
+                    for (byte
+                         c = _serial.ReadByte(out bool _); // We don't care timeout here, and it shouldn't happen
+                         _loopBackStopwatch.ElapsedMilliseconds <= CommandTimeout;
+                         c = _serial.ReadByte(out _))
                     {
-                        // Get the time immediately before sending
-                        sendTime = DateTime.Now;
-
-                        // Send command
-                        _serial.Write(bytes);
-
-                        // Start timer
-                        _loopBackStopwatch.Restart();
-
-                        // Wait loop back
-                        int index = 0;
-                        for (byte
-                             c = _serial.ReadByte(out bool _); // We don't care timeout here, and it shouldn't happen
-                             _loopBackStopwatch.ElapsedMilliseconds <= CommandTimeout;
-                             c = _serial.ReadByte(out _))
+                        if (c == bytes[index])
                         {
-                            if (c == bytes[index])
+                            if (++index == length)
                             {
-                                if (++index == length)
-                                {
-                                    succeed = true;
-                                    onSucceed?.Invoke(sendTime);
-                                    goto endRetryLoop; // If succeeded, break here.
-                                }
-                            }
-                            else
-                            {
-                                index = 0;
+                                succeed = true;
+                                onSucceed?.Invoke(sendTime);
+                                goto endRetryLoop; // If succeeded, break here.
                             }
                         }
-
-                        // Clean serial buffer
-                        _serial.DiscardReadBuffer();
-                    }
-                    catch (Exception e)
-                    {
-                        throw new SerialDeviceException("Serial Errors!", e);
+                        else
+                        {
+                            index = 0;
+                        }
                     }
 
-                    // Retry delay if needed
-                    if ((toSend.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
-                        || (toSend.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
-                    {
-                        Thread.Sleep(RetryInterval + _random.Next(-20, 20));
-                    }
+                    // Clean serial buffer
+                    _serial.DiscardReadBuffer();
+                }
+                catch (Exception e)
+                {
+                    throw new SerialDeviceException("Serial Errors!", e);
+                }
+                Trace.WriteLine("Retry!");
+                // Retry delay if needed
+                if ((toSend.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
+                    || (toSend.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
+                {
+                    Thread.Sleep(RetryInterval + _random.Next(-20, 20));
                 }
             }
         endRetryLoop:

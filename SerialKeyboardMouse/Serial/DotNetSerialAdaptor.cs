@@ -7,7 +7,7 @@ namespace SerialKeyboardMouse.Serial
 {
     public class DotNetSerialAdaptor : ISerialAdaptor
     {
-        private const int ReadTimeout = 10;
+        private const int ReadTimeout = 50;
         private const int WriteTimeout = 100;
         private readonly SerialPort _serialPort;
 
