@@ -30,7 +30,7 @@ namespace SerialKeyboardMouse.Serial
         /// <summary>
         /// Timeout when waiting for command loop back. Unit in ms.
         /// </summary>
-        private const int CommandTimeout = 20;
+        private const int CommandTimeout = 50;
 
         /// <summary>
         /// Maximum number of frame pending for send.

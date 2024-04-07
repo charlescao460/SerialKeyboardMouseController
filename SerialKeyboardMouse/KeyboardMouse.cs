@@ -34,6 +34,9 @@ namespace SerialKeyboardMouse
 
         public int MouseResolutionHeight => _mouseResolution.Item2;
 
+        /// <summary>
+        /// Get mouse position of last mouse move. The origin [0,0] is upper-left of the screen. 
+        /// </summary>
         public Tuple<int, int> MousePositionTuple => _mousePosition;
 
         public int MousePositionX => _mousePosition.Item1;
@@ -112,7 +115,7 @@ namespace SerialKeyboardMouse
         }
 
         /// <summary>
-        /// Move the absolute mouse to desired coordinate with blocking I/O.
+        /// Move the absolute mouse to desired coordinate with blocking I/O. The origin [0,0] is upper-left. 
         /// </summary>
         /// <param name="x">Coordinate X</param>
         /// <param name="y">Coordinate Y </param>
@@ -131,7 +134,7 @@ namespace SerialKeyboardMouse
         }
 
         /// <summary>
-        /// Move the absolute mouse to desired coordinate with async I/O.
+        /// Move the absolute mouse to desired coordinate with async I/O. The origin [0,0] is upper-left. 
         /// </summary>
         /// <param name="x">Coordinate X</param>
         /// <param name="y">Coordinate Y </param>
