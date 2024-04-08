@@ -225,8 +225,10 @@ namespace SerialKeyboardMouse
             { 0x1C, HidKeyboardUsage.Enter },
             { 0x1D, HidKeyboardUsage.LeftControl },
             { 0x2A, HidKeyboardUsage.LeftShift },
+            { 0xE01D, HidKeyboardUsage.RightControl },
             { 0x36, HidKeyboardUsage.RightShift },
             { 0x38, HidKeyboardUsage.LeftAlt },
+            { 0xE038, HidKeyboardUsage.RightAlt },
             { 0x39, HidKeyboardUsage.Space },
             { 0x0E, HidKeyboardUsage.Backspace },
             { 0x0F, HidKeyboardUsage.Tab },
@@ -249,9 +251,9 @@ namespace SerialKeyboardMouse
             { 0x52, HidKeyboardUsage.Keypad0 },
             { 0x53, HidKeyboardUsage.KeypadPeriod },
             { 0xE035, HidKeyboardUsage.KeypadDivide }, // Keypad Divide
-            { 0xE037, HidKeyboardUsage.KeypadMultiply }, // Keypad Multiply
-            { 0xE04A, HidKeyboardUsage.KeypadMinus }, // Keypad Minus
-            { 0xE04E, HidKeyboardUsage.KeypadPlus }, // Keypad Plus
+            { 0x37, HidKeyboardUsage.KeypadMultiply }, // Keypad Multiply
+            { 0x4A, HidKeyboardUsage.KeypadMinus }, // Keypad Minus
+            { 0x4E, HidKeyboardUsage.KeypadPlus }, // Keypad Plus
 
             // Navigation keys and others
             { 0xE01C, HidKeyboardUsage.KeypadEnter }, // Keypad Enter
@@ -265,8 +267,9 @@ namespace SerialKeyboardMouse
             { 0xE052, HidKeyboardUsage.Insert }, // Insert
             { 0xE053, HidKeyboardUsage.DeleteForward }, // Delete
             { 0xE047, HidKeyboardUsage.Home }, // Home
-            { 0x5B, HidKeyboardUsage.LeftWindows },
-            { 0x5C, HidKeyboardUsage.RightWindows },
+            { 0xE05B, HidKeyboardUsage.LeftWindows },
+            { 0xE05C, HidKeyboardUsage.RightWindows },
+            { 0xE05D, HidKeyboardUsage.Application },
         };
 
         /// <summary>
