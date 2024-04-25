@@ -98,6 +98,7 @@ namespace SerialKeyboardMouse.Serial
         public void Write(Span<byte> memory)
         {
             _serialPort.BaseStream.Write(memory);
+            _serialPort.BaseStream.Flush();
         }
 
         public int AvailableBytes => (int)_serialPort.BaseStream.Length;
