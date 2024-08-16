@@ -76,17 +76,16 @@ namespace SerialKeyboardMouse
 
         /// <summary>
         /// Set the absolute mouse's resolution with blocking I/O.
-        /// Note that in firmware, it has a limitation of 8K resolution.
         /// </summary>
         /// <param name="width">Width of resolution.</param>
         /// <param name="height">Height of resolution. </param>
-        /// <exception cref="ArgumentException">If supplied with non-positive values</exception>
+        /// <exception cref="ArgumentException">If supplied with non-positive values or greater than 32767</exception>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public void SetMouseResolution(int width, int height)
         {
-            if (width <= 0 || height <= 0)
+            if (width <= 0 || height <= 0 || width > short.MaxValue || height > short.MaxValue)
             {
-                throw new ArgumentException("Resolution values cannot be negative!");
+                throw new ArgumentException("Resolution values cannot be negative or bigger than 32767!");
             }
             SerialCommandFrame frame
                 = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseResolution,
@@ -96,17 +95,16 @@ namespace SerialKeyboardMouse
 
         /// <summary>
         /// Set the absolute mouse's resolution with async I/O.
-        /// Note that in firmware, it has a limitation of 8K resolution.
         /// </summary>
         /// <param name="width">Width of resolution.</param>
         /// <param name="height">Height of resolution. </param>
-        /// <exception cref="ArgumentException">If supplied with non-positive values</exception>
+        /// <exception cref="ArgumentException">If supplied with non-positive values or greater than 32767</exception>
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task SetMouseResolutionAsync(int width, int height)
         {
-            if (width <= 0 || height <= 0)
+            if (width <= 0 || height <= 0 || width > short.MaxValue || height > short.MaxValue)
             {
-                throw new ArgumentException("Resolution values cannot be negative!");
+                throw new ArgumentException("Resolution values cannot be negative or bigger than 32767!");
             }
             SerialCommandFrame frame
                 = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseResolution,
