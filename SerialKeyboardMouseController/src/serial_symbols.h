@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-constexpr unsigned long BAUD_RATE = 2000000u;
+constexpr unsigned long BAUD_RATE = 500000u;
 
 /*
  * Frame format:
