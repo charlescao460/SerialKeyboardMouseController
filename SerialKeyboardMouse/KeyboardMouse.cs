@@ -20,6 +20,8 @@ namespace SerialKeyboardMouse
     /// </summary>
     public class KeyboardMouse : IDisposable
     {
+        public const int RelativeMouseMaxValue = 127;
+        public const int RelativeMouseMinValue = -127;
         private readonly ReliableFrameSender _sender;
         private bool _disposedValue;
         private readonly ConcurrentDictionary<HidKeyboardUsage, DateTime?> _keyboardPressTimes;
@@ -113,6 +115,50 @@ namespace SerialKeyboardMouse
         }
 
         /// <summary>
+        /// Move the relative mouse with blocking I/O. 
+        /// </summary>
+        /// <param name="x">Delta Coordinate X</param>
+        /// <param name="y">Delta Coordinate Y </param>
+        /// <exception cref="ArgumentException">If supplied is out of [-127, 127] range</exception>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
+        public void MoveMouseRelatively(int x, int y)
+        {
+            if (x < RelativeMouseMinValue || y < RelativeMouseMinValue || x > RelativeMouseMaxValue || y > RelativeMouseMaxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(x), $"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
+            }
+            SerialCommandFrame frame
+                = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseMoveRelatively,
+                    new Tuple<ushort, ushort>((ushort)x, (ushort)y));
+            _sender.SendFrame(frame, _ =>
+            {
+                _mousePosition = new Tuple<int, int>(MousePositionX + x, MousePositionY + y);
+            });
+        }
+
+        /// <summary>
+        /// Move the relative mouse with async I/O.
+        /// </summary>
+        /// <param name="x">Delta Coordinate X</param>
+        /// <param name="y">Delta Coordinate Y </param>
+        /// <exception cref="ArgumentException">If supplied is out of [-127, 127] range</exception>
+        /// <exception cref="SerialDeviceException">If command failed.</exception>
+        public Task MoveMouseRelativelyAsync(int x, int y)
+        {
+            if (x < RelativeMouseMinValue || y < RelativeMouseMinValue || x > RelativeMouseMaxValue || y > RelativeMouseMaxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(x), $"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
+            }
+            SerialCommandFrame frame
+                = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseMoveRelatively,
+                    new Tuple<ushort, ushort>((ushort)x, (ushort)y));
+            return _sender.SendFrameAsync(frame, _ =>
+            {
+                _mousePosition = new Tuple<int, int>(MousePositionX + x, MousePositionY + y);
+            });
+        }
+
+        /// <summary>
         /// Move the absolute mouse to desired coordinate with blocking I/O. The origin [0,0] is upper-left. 
         /// </summary>
         /// <param name="x">Coordinate X</param>
@@ -123,7 +169,7 @@ namespace SerialKeyboardMouse
         {
             if (x <= 0 || y <= 0 || x > MouseResolutionWidth || y > MouseResolutionHeight)
             {
-                throw new ArgumentOutOfRangeException($"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
+                throw new ArgumentOutOfRangeException(nameof(x), $"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
             }
             SerialCommandFrame frame
                 = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseMove,
@@ -142,7 +188,7 @@ namespace SerialKeyboardMouse
         {
             if (x <= 0 || y <= 0 || x > MouseResolutionWidth || y > MouseResolutionHeight)
             {
-                throw new ArgumentOutOfRangeException($"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
+                throw new ArgumentOutOfRangeException(nameof(x), $"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
             }
             SerialCommandFrame frame
                 = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseMove,

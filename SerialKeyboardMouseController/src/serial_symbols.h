@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-constexpr unsigned long BAUD_RATE = 500000u;
+constexpr unsigned long BAUD_RATE = 2000000u;
 
 /*
  * Frame format:
@@ -30,6 +30,7 @@ constexpr uint8_t MAX_FRAME_LENGTH = MAX_DATA_LENGTH + 2; // Prefix 0xAB <Length
 
 enum FrameType
 {
+    FRAME_TYPE_REL_MOUSE_MOVE = 0xA0u,
     FRAME_TYPE_MOUSE_MOVE = 0xAAu,
     FRAME_TYPE_MOUSE_SCROLL = 0xABu,
     FRAME_TYPE_MOUSE_PRESS = 0xACu,

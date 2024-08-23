@@ -37,7 +37,7 @@ static const uint8_t _hidReportDescriptor[] PROGMEM = {
       0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)  // 47
       0x09, 0x06,                    // USAGE (Keyboard)
       0xa1, 0x01,                    // COLLECTION (Application)
-      0x85, 0x02,                    //   REPORT_ID (2)
+      0x85, 0x03,                    //   REPORT_ID (3)
       0x05, 0x07,                    //   USAGE_PAGE (Keyboard)
 
     0x19, 0xe0,                    //   USAGE_MINIMUM (Keyboard LeftControl)
@@ -80,7 +80,7 @@ void Keyboard_::end(void)
 
 void Keyboard_::sendReport(KeyReport* keys)
 {
-    HID().SendReport(2, keys, sizeof(KeyReport));
+    HID().SendReport(3, keys, sizeof(KeyReport));
 }
 
 extern

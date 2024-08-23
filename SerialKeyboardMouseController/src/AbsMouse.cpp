@@ -25,6 +25,10 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #if defined(_USING_HID)
 
+#define MOUSE_LEFT 0x01
+#define MOUSE_RIGHT 0x02
+#define MOUSE_MIDDLE 0x04
+
 static const uint8_t HID_REPORT_DESCRIPTOR[] PROGMEM = {
     0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
     0x09, 0x02,        // Usage (Mouse)
@@ -61,8 +65,8 @@ static const uint8_t HID_REPORT_DESCRIPTOR[] PROGMEM = {
     0x75, 0x08,        //     Report Size (8)
     0x95, 0x01,        //     Report Count (1)
     0x81, 0x06,        //     Input (Data,Var,Rel)
-    0xC0,              //   End Collection
-    0xC0               // End Collection
+    0xC0,              //   End Collection (Physical)
+    0xC0               // End Collection (Application)
 };
 
 AbsMouse_::AbsMouse_(void) : _buttons(0), _scroll(0), _x(0), _y(0), _width(1920), _height(1080), _autoReport(false)
@@ -93,8 +97,15 @@ void AbsMouse_::report(void)
 
 void AbsMouse_::move(uint16_t x, uint16_t y)
 {
-    _x = (uint16_t)((32767l * ((uint32_t)x)) / _width);
-    _y = (uint16_t)((32767l * ((uint32_t)y)) / _height);
+    if(_width != 32767 || _height != 32767)
+    {
+        _x = (uint16_t)((32767l * ((uint32_t)x)) / _width);
+        _y = (uint16_t)((32767l * ((uint32_t)y)) / _height);
+    } else
+    {
+        _x = x;
+        _y = y;
+    }
 
     if (_autoReport)
     {

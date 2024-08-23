@@ -9,6 +9,7 @@
 #include <Arduino.h>
 #include "Keyboard.h"
 #include "AbsMouse.h"
+#include "Mouse.h"
 #include "serial_symbols.h"
 #include "debug_print.h"
 
@@ -16,13 +17,13 @@
 constexpr unsigned int SERIAL_TIMEOUT = 1000 / ((BAUD_RATE / 8) / MAX_FRAME_LENGTH) + 2;
 constexpr unsigned int RECEIVE_DATA_BUFFER_SIZE = 128u;
 static_assert(RECEIVE_DATA_BUFFER_SIZE >= MAX_FRAME_LENGTH + 2, "Serial receiving buffer must larger than frame size!");
-constexpr unsigned long MAX_RESOLUTION_WIDTH = 7680u;
-constexpr unsigned long MAX_RESOLUTION_HEIGHT = 4320u;
+constexpr unsigned long MAX_RESOLUTION_WIDTH = 32767u;
+constexpr unsigned long MAX_RESOLUTION_HEIGHT = 32767u;
 HardwareSerial& ControlSerial = Serial1;
 
 /****************************** Globals *******************************/
-unsigned long current_resolution_width = 1920u;
-unsigned long current_resolution_height = 1080u;
+unsigned long current_resolution_width = MAX_RESOLUTION_WIDTH;
+unsigned long current_resolution_height = MAX_RESOLUTION_HEIGHT;
 
 /*************************** Implementation ***************************/
 inline bool xor_checksum_check(const uint8_t* data, const uint8_t length, const uint8_t value)
@@ -47,10 +48,13 @@ void setup()
 #ifdef _DEBUG
     Serial.begin(115200);
 #endif
+    pinMode(LED_BUILTIN, OUTPUT);
+    analogWrite(LED_BUILTIN, 16);
     ControlSerial.begin(BAUD_RATE);
     ControlSerial.setTimeout(SERIAL_TIMEOUT);
     Keyboard.begin();
     AbsMouse.init(current_resolution_width, current_resolution_height, true);
+    Mouse.begin();
     ControlSerial.println("ControlSerial Initialized!");
 }
 
@@ -91,6 +95,15 @@ void loop()
         const uint8_t type = ptr_data[0];
         switch (type)
         {
+        case FRAME_TYPE_REL_MOUSE_MOVE:
+        {
+            uint16_t x = 0;
+            uint16_t y = 0;
+            memcpy(&x, ptr_data + 1, 2);
+            memcpy(&y, ptr_data + 3, 2);
+            Mouse.move(x, y);
+            break;
+        }
         case FRAME_TYPE_MOUSE_MOVE:
         {
             uint16_t x = 0;

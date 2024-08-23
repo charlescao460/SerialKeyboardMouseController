@@ -12,7 +12,7 @@ namespace SerialKeyboardMouse.Serial
     /// </summary>
     internal static class SerialSymbols
     {
-        public const int BaudRate = 2000000;
+        public const int BaudRate = 500000;
 
         public const byte FrameStart = 0xAB;
 
@@ -24,6 +24,7 @@ namespace SerialKeyboardMouse.Serial
 
         public enum FrameType : byte
         {
+            MouseMoveRelatively = 0xA0,
             MouseMove = 0xAA,
             MouseScroll = 0xAB,
             MousePress = 0xAC,
@@ -64,6 +65,7 @@ namespace SerialKeyboardMouse.Serial
         /// </summary>
         public static readonly Dictionary<FrameType, int> FrameLengthLookup = new()
         {
+            { FrameType.MouseMoveRelatively, 8 }, // 0xAB 0x06 0xA0 <4-byte coordinate> <Checksum>
             { FrameType.MouseMove, 8 }, // 0xAB 0x06 0xAA <4-byte coordinate> <Checksum>
             { FrameType.MouseScroll, 5 }, // 0xAB 0x03 0xAB <Value> <Checksum>
             { FrameType.MousePress, 5 }, // 0xAB 0x03 0xAC <Key> <Checksum>

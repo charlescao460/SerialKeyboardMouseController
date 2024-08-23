@@ -32,10 +32,6 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #else
 
-#define MOUSE_LEFT 0x01
-#define MOUSE_RIGHT 0x02
-#define MOUSE_MIDDLE 0x04
-
 class AbsMouse_
 {
 private:
@@ -53,8 +49,8 @@ public:
     void report(void);
     void move(uint16_t x, uint16_t y);
     void scroll(int8_t wheel);
-    void press(uint8_t b = MOUSE_LEFT);
-    void release(uint8_t b = MOUSE_LEFT);
+    void press(uint8_t b);
+    void release(uint8_t b);
 };
 extern AbsMouse_ AbsMouse;
 

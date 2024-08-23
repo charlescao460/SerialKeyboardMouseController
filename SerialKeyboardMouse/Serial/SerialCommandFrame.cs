@@ -155,6 +155,7 @@ namespace SerialKeyboardMouse.Serial
             HidFrameInfo info = null;
             switch (type)
             {
+                case SerialSymbols.FrameType.MouseMoveRelatively:
                 case SerialSymbols.FrameType.MouseMove:
                 case SerialSymbols.FrameType.MouseResolution:
                     info = new HidFrameInfo((HidFrameType)type, null,
