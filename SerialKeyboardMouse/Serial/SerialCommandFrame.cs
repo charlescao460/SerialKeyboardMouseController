@@ -156,6 +156,9 @@ namespace SerialKeyboardMouse.Serial
             switch (type)
             {
                 case SerialSymbols.FrameType.MouseMoveRelatively:
+                    info = new HidFrameInfo((HidFrameType)type, null,
+                        new Tuple<int, int>((short)cord.Item1, (short)cord.Item2), null, null);
+                    break;
                 case SerialSymbols.FrameType.MouseMove:
                 case SerialSymbols.FrameType.MouseResolution:
                     info = new HidFrameInfo((HidFrameType)type, null,

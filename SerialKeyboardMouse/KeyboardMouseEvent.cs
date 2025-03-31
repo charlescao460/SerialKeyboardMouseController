@@ -24,13 +24,19 @@ namespace SerialKeyboardMouse
         public DateTime Time { get; }
 
         /// <summary>
+        /// Time consumed between sending the frame and receiving ACK. 
+        /// </summary>
+        public TimeSpan Delay { get; }
+
+        /// <summary>
         /// Frame Info
         /// </summary>
         public HidFrameInfo Info { get; }
 
-        internal KeyboardMouseEventArgs(DateTime time, HidFrameInfo info)
+        internal KeyboardMouseEventArgs(DateTime time, TimeSpan delay, HidFrameInfo info)
         {
             Time = time;
+            Delay = delay;
             Info = info;
         }
     }

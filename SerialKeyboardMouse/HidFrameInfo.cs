@@ -14,6 +14,7 @@ namespace SerialKeyboardMouse
         MouseReleaseAll,
         KeyboardReleaseAll,
         MouseMove = 0xAA,
+        MouseRelativeMove = 0xA0,
         MouseScroll = 0xAB,
         MousePress = 0xAC,
         MouseRelease = 0xAD,
@@ -80,6 +81,7 @@ namespace SerialKeyboardMouse
                 case HidFrameType.KeyboardReleaseAll:
                     return Type.ToString();
                 case HidFrameType.MouseMove:
+                case HidFrameType.MouseRelativeMove:
                 case HidFrameType.MouseResolution:
                     return $"{Type}: ({MouseCoordinate?.Item1}, {MouseCoordinate?.Item2})";
                 case HidFrameType.MouseScroll:

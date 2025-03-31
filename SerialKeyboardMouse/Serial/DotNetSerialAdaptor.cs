@@ -92,20 +92,19 @@ namespace SerialKeyboardMouse.Serial
 
         public int Read(Span<byte> memory)
         {
-            return _serialPort.BaseStream.Read(memory);
+            return _serialPort.BaseStream.ReadAtLeast(memory, memory.Length);
         }
 
         public void Write(Span<byte> memory)
         {
             _serialPort.BaseStream.Write(memory);
-            _serialPort.BaseStream.Flush();
         }
 
         public int AvailableBytes => (int)_serialPort.BaseStream.Length;
 
         public ValueTask<int> AsyncRead(Memory<byte> memory, CancellationToken token = default)
         {
-            return _serialPort.BaseStream.ReadAsync(memory, token);
+            return _serialPort.BaseStream.ReadAtLeastAsync(memory, memory.Length, true, token);
         }
 
         public ValueTask AsyncWrite(Memory<byte> memory, CancellationToken token = default)

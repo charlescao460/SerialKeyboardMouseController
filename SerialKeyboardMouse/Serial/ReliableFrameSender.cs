@@ -204,6 +204,7 @@ namespace SerialKeyboardMouse.Serial
             Span<byte> bytes = toSend.Bytes.Span;
             DateTime sendTime = DateTime.MinValue; // This value should not be used anyway
             bool succeed = false;
+            Span<byte> readBack = stackalloc byte[length];
 
             // Loop for retry
             for (int i = 0; i < NumMaxRetries; ++i)
@@ -213,54 +214,41 @@ namespace SerialKeyboardMouse.Serial
                     // Get the time immediately before sending
                     sendTime = DateTime.Now;
 
-                    // Send command
-                    _serial.Write(bytes);
-
                     // Start timer
                     _loopBackStopwatch.Restart();
 
-                    // Wait loop back
-                    int index = 0;
-                    for (byte
-                         c = _serial.ReadByte(out bool _); // We don't care timeout here, and it shouldn't happen
-                         _loopBackStopwatch.ElapsedMilliseconds <= CommandTimeout;
-                         c = _serial.ReadByte(out _))
-                    {
-                        if (c == bytes[index])
-                        {
-                            if (++index == length)
-                            {
-                                succeed = true;
-                                onSucceed?.Invoke(sendTime);
-                                goto endRetryLoop; // If succeeded, break here.
-                            }
-                        }
-                        else
-                        {
-                            index = 0;
-                        }
-                    }
+                    // Send command
+                    _serial.Write(bytes);
 
-                    // Clean serial buffer
-                    _serial.DiscardReadBuffer();
+                    // Wait loop back
+                    _serial.Read(readBack);
+                    if (!bytes.SequenceEqual(readBack))
+                    {
+                        Trace.WriteLine("SerialKeyboardMouse.Serial.ReliableFrameSender: Retry!");
+                        // Retry delay if needed
+                        if ((toSend.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
+                            || (toSend.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
+                        {
+                            Thread.Sleep(RetryInterval + _random.Next(-20, 20));
+                        }
+                        // Clean serial buffer
+                        _serial.DiscardReadBuffer();
+                        continue;
+                    }
+                    _loopBackStopwatch.Stop();
+                    succeed = true;
+                    onSucceed?.Invoke(sendTime);
+                    break;
                 }
                 catch (Exception e)
                 {
                     throw new SerialDeviceException("Serial Errors!", e);
                 }
-                Trace.WriteLine("Retry!");
-                // Retry delay if needed
-                if ((toSend.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
-                    || (toSend.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
-                {
-                    Thread.Sleep(RetryInterval + _random.Next(-20, 20));
-                }
             }
-        endRetryLoop:
             if (OnSendingReport != null)
             {
                 // If succeeded, invoke event using the first sending time. If failed or retried, using the last sending time.
-                Task.Run(() => OnSendingReport.Invoke(new KeyboardMouseEventArgs(sendTime, toSend.Info)));
+                Task.Run(() => OnSendingReport.Invoke(new KeyboardMouseEventArgs(sendTime, _loopBackStopwatch.Elapsed, toSend.Info)));
             }
             if (!succeed)
             {
