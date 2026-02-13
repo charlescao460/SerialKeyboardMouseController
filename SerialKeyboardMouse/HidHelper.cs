@@ -273,6 +273,111 @@ namespace SerialKeyboardMouse
         };
 
         /// <summary>
+        /// This is for a standard US keyboard layout only.
+        /// </summary>
+        private static readonly Dictionary<char, (bool shift, HidKeyboardUsage usage)> AsciiToHidMap = new()
+        {
+            // Whitespace / control-ish
+            [' '] = (false, HidKeyboardUsage.Space),
+            ['\t'] = (false, HidKeyboardUsage.Tab),
+            ['\r'] = (false, HidKeyboardUsage.Enter),
+            ['\n'] = (false, HidKeyboardUsage.Enter),
+
+            // Digits (no shift)
+            ['0'] = (false, HidKeyboardUsage.Num0),
+            ['1'] = (false, HidKeyboardUsage.Num1),
+            ['2'] = (false, HidKeyboardUsage.Num2),
+            ['3'] = (false, HidKeyboardUsage.Num3),
+            ['4'] = (false, HidKeyboardUsage.Num4),
+            ['5'] = (false, HidKeyboardUsage.Num5),
+            ['6'] = (false, HidKeyboardUsage.Num6),
+            ['7'] = (false, HidKeyboardUsage.Num7),
+            ['8'] = (false, HidKeyboardUsage.Num8),
+            ['9'] = (false, HidKeyboardUsage.Num9),
+
+            // Shifted digits / symbols
+            ['!'] = (true, HidKeyboardUsage.Num1),
+            ['@'] = (true, HidKeyboardUsage.Num2),
+            ['#'] = (true, HidKeyboardUsage.Num3),
+            ['$'] = (true, HidKeyboardUsage.Num4),
+            ['%'] = (true, HidKeyboardUsage.Num5),
+            ['^'] = (true, HidKeyboardUsage.Num6),
+            ['&'] = (true, HidKeyboardUsage.Num7),
+            ['*'] = (true, HidKeyboardUsage.Num8),
+            ['('] = (true, HidKeyboardUsage.Num9),
+            [')'] = (true, HidKeyboardUsage.Num0),
+
+            // Punctuation / symbols (US layout)
+            ['-'] = (false, HidKeyboardUsage.Minus),
+            ['_'] = (true, HidKeyboardUsage.Minus),
+            ['='] = (false, HidKeyboardUsage.Equals),
+            ['+'] = (true, HidKeyboardUsage.Equals),
+
+            ['['] = (false, HidKeyboardUsage.LeftBracket),
+            ['{'] = (true, HidKeyboardUsage.LeftBracket),
+            [']'] = (false, HidKeyboardUsage.RightBracket),
+            ['}'] = (true, HidKeyboardUsage.RightBracket),
+
+            ['\\'] = (false, HidKeyboardUsage.Backslash),
+            ['|'] = (true, HidKeyboardUsage.Backslash),
+
+            [';'] = (false, HidKeyboardUsage.Semicolon),
+            [':'] = (true, HidKeyboardUsage.Semicolon),
+
+            ['\''] = (false, HidKeyboardUsage.Quote),
+            ['"'] = (true, HidKeyboardUsage.Quote),
+
+            ['`'] = (false, HidKeyboardUsage.GraveAccent),
+            ['~'] = (true, HidKeyboardUsage.GraveAccent),
+
+            [','] = (false, HidKeyboardUsage.Comma),
+            ['<'] = (true, HidKeyboardUsage.Comma),
+
+            ['.'] = (false, HidKeyboardUsage.Period),
+            ['>'] = (true, HidKeyboardUsage.Period),
+
+            ['/'] = (false, HidKeyboardUsage.Slash),
+            ['?'] = (true, HidKeyboardUsage.Slash),
+        };
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="ch"></param>
+        /// <param name="shift"></param>
+        /// <param name="usage"></param>
+        /// <returns></returns>
+        public static bool GetUsageForAscii(char ch, out bool shift, out HidKeyboardUsage usage)
+        {
+            // Letters
+            if (ch is >= 'a' and <= 'z')
+            {
+                shift = false;
+                usage = (HidKeyboardUsage)((byte)HidKeyboardUsage.A + (ch - 'a'));
+                return true;
+            }
+
+            if (ch is >= 'A' and <= 'Z')
+            {
+                shift = true;
+                usage = (HidKeyboardUsage)((byte)HidKeyboardUsage.A + (ch - 'A'));
+                return true;
+            }
+
+            // Mapped punctuation/digits/whitespace
+            if (AsciiToHidMap.TryGetValue(ch, out var v))
+            {
+                shift = v.shift;
+                usage = v.usage;
+                return true;
+            }
+
+            shift = false;
+            usage = HidKeyboardUsage.Undefined;
+            return false;
+        }
+
+        /// <summary>
         /// Return HID usage id from System.Windows.Forms.Keys
         /// </summary>
         /// <param name="winFormKeys">System.Windows.Forms.Keys Enum</param>
