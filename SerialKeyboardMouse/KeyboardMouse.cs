@@ -71,7 +71,7 @@ namespace SerialKeyboardMouse
             _mousePressTimes = new ConcurrentDictionary<MouseButton, DateTime?>();
             Array.ForEach(Enum.GetValues<HidKeyboardUsage>(), key => _keyboardPressTimes[key] = null);
             Array.ForEach(Enum.GetValues<MouseButton>(), key => _mousePressTimes[key] = null);
-            _mouseResolution = new Tuple<int, int>(1920, 1080); // Default values in Arduino Sketch
+            _mouseResolution = new Tuple<int, int>(32767, 32767); // Default values in Arduino Sketch
             _mousePosition = new Tuple<int, int>(-1, -1);
             _sender.OnSendingReport += (e) => OnOperation?.Invoke(e);
         }
