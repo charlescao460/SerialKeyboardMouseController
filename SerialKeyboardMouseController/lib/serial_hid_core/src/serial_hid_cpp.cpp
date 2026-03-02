@@ -70,22 +70,9 @@ void abs_mouse_change_resolution(void* ctx, uint16_t width, uint16_t height)
     static_cast<AbsMouse*>(ctx)->change_resolution(width, height);
 }
 
-size_t checksum_compute(void* ctx,
-                        const uint8_t* data,
-                        size_t len,
-                        uint8_t* out,
-                        size_t out_cap)
+uint8_t crc8_compute(void* ctx, const uint8_t* data, size_t len)
 {
-    return static_cast<Checksum*>(ctx)->compute(data, len, out, out_cap);
-}
-
-bool checksum_ok(void* ctx,
-                 const uint8_t* data,
-                 size_t len,
-                 const uint8_t* expected,
-                 size_t expected_len)
-{
-    return static_cast<Checksum*>(ctx)->checksum_ok(data, len, expected, expected_len);
+    return static_cast<Crc8*>(ctx)->compute(data, len);
 }
 
 uint32_t clock_now_ms(void* ctx)
@@ -141,12 +128,11 @@ shd_abs_mouse_t make_c_abs_mouse(AbsMouse& mouse)
     return out;
 }
 
-shd_checksum_t make_c_checksum(Checksum& checksum)
+shd_crc8_t make_c_crc8(Crc8& crc8)
 {
-    shd_checksum_t out;
-    out.ctx = &checksum;
-    out.compute = &checksum_compute;
-    out.checksum_ok = &checksum_ok;
+    shd_crc8_t out;
+    out.ctx = &crc8;
+    out.compute = &crc8_compute;
     return out;
 }
 
@@ -176,8 +162,8 @@ Core::Core(SerialIo& serial,
            Keyboard& keyboard,
            RelMouse& rel_mouse,
            AbsMouse& abs_mouse,
-           Checksum& checksum,
            Clock& clock,
+           Crc8* crc8,
            Logger* logger)
     : core_(), deps_()
 {
@@ -185,7 +171,10 @@ Core::Core(SerialIo& serial,
     deps_.keyboard = make_c_keyboard(keyboard);
     deps_.rel_mouse = make_c_rel_mouse(rel_mouse);
     deps_.abs_mouse = make_c_abs_mouse(abs_mouse);
-    deps_.checksum = make_c_checksum(checksum);
+    if (crc8 != 0)
+    {
+        deps_.crc8 = make_c_crc8(*crc8);
+    }
     deps_.clock = make_c_clock(clock);
     if (logger != 0)
     {

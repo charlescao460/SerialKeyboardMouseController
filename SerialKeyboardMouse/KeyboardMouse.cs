@@ -29,6 +29,7 @@ namespace SerialKeyboardMouse
         private Tuple<int, int> _mouseResolution;
         private Tuple<int, int> _mousePosition;
         private KeyButtonPressTimeoutMonitor _pressMonitor;
+        private readonly SerialCommandFrameBuilder _frameBuilder;
 
         public Tuple<int, int> MouseResolutionTuple => _mouseResolution;
 
@@ -66,6 +67,7 @@ namespace SerialKeyboardMouse
         /// </param>
         public KeyboardMouse(ISerialAdaptor serial)
         {
+            _frameBuilder = new SerialCommandFrameBuilder();
             _sender = new ReliableFrameSender(serial);
             _keyboardPressTimes = new ConcurrentDictionary<HidKeyboardUsage, DateTime?>();
             _mousePressTimes = new ConcurrentDictionary<MouseButton, DateTime?>();
@@ -90,7 +92,7 @@ namespace SerialKeyboardMouse
                 throw new ArgumentException("Resolution values cannot be negative or bigger than 32767!");
             }
             SerialCommandFrame frame
-                = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseResolution,
+                = _frameBuilder.OfCoordinateType(SerialSymbols.FrameType.MouseResolution,
                     new Tuple<ushort, ushort>((ushort)width, (ushort)height));
             _sender.SendFrame(frame, _ => _mouseResolution = new Tuple<int, int>(width, height));
         }
@@ -109,7 +111,7 @@ namespace SerialKeyboardMouse
                 throw new ArgumentException("Resolution values cannot be negative or bigger than 32767!");
             }
             SerialCommandFrame frame
-                = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseResolution,
+                = _frameBuilder.OfCoordinateType(SerialSymbols.FrameType.MouseResolution,
                     new Tuple<ushort, ushort>((ushort)width, (ushort)height));
             return _sender.SendFrameAsync(frame, _ => _mouseResolution = new Tuple<int, int>(width, height));
         }
@@ -128,7 +130,7 @@ namespace SerialKeyboardMouse
                 throw new ArgumentOutOfRangeException(nameof(x), $"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
             }
             SerialCommandFrame frame
-                = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseMoveRelatively,
+                = _frameBuilder.OfCoordinateType(SerialSymbols.FrameType.MouseMoveRelatively,
                     new Tuple<ushort, ushort>((ushort)x, (ushort)y));
             _sender.SendFrame(frame, _ =>
             {
@@ -150,7 +152,7 @@ namespace SerialKeyboardMouse
                 throw new ArgumentOutOfRangeException(nameof(x), $"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
             }
             SerialCommandFrame frame
-                = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseMoveRelatively,
+                = _frameBuilder.OfCoordinateType(SerialSymbols.FrameType.MouseMoveRelatively,
                     new Tuple<ushort, ushort>((ushort)x, (ushort)y));
             return _sender.SendFrameAsync(frame, _ =>
             {
@@ -172,7 +174,7 @@ namespace SerialKeyboardMouse
                 throw new ArgumentOutOfRangeException(nameof(x), $"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
             }
             SerialCommandFrame frame
-                = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseMove,
+                = _frameBuilder.OfCoordinateType(SerialSymbols.FrameType.MouseMove,
                     new Tuple<ushort, ushort>((ushort)x, (ushort)y));
             _sender.SendFrame(frame, _ => _mousePosition = new Tuple<int, int>(x, y));
         }
@@ -191,7 +193,7 @@ namespace SerialKeyboardMouse
                 throw new ArgumentOutOfRangeException(nameof(x), $"Mouse Coordinate {x},{y} is out of range {MouseResolutionWidth},{MouseResolutionHeight}!\n");
             }
             SerialCommandFrame frame
-                = SerialCommandFrame.OfCoordinateType(SerialSymbols.FrameType.MouseMove,
+                = _frameBuilder.OfCoordinateType(SerialSymbols.FrameType.MouseMove,
                     new Tuple<ushort, ushort>((ushort)x, (ushort)y));
             return _sender.SendFrameAsync(frame, _ => _mousePosition = new Tuple<int, int>(x, y));
         }
@@ -203,7 +205,7 @@ namespace SerialKeyboardMouse
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public void MouseScroll(sbyte value)
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseScroll, (byte)value);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.MouseScroll, (byte)value);
             _sender.SendFrame(frame);
         }
 
@@ -214,7 +216,7 @@ namespace SerialKeyboardMouse
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task MouseScrollAsync(sbyte value)
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseScroll, (byte)value);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.MouseScroll, (byte)value);
             return _sender.SendFrameAsync(frame);
         }
 
@@ -229,7 +231,7 @@ namespace SerialKeyboardMouse
         public void MousePressButton(MouseButton button)
         {
             CheckMouseButton(button);
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MousePress, (byte)button);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.MousePress, (byte)button);
             _sender.SendFrame(frame, t => _mousePressTimes[button] = t);
         }
 
@@ -244,7 +246,7 @@ namespace SerialKeyboardMouse
         public Task MousePressButtonAsync(MouseButton button)
         {
             CheckMouseButton(button);
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MousePress, (byte)button);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.MousePress, (byte)button);
             return _sender.SendFrameAsync(frame, t => _mousePressTimes[button] = t);
         }
 
@@ -259,7 +261,7 @@ namespace SerialKeyboardMouse
         public void MouseReleaseButton(MouseButton button)
         {
             CheckMouseButton(button);
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, (byte)button);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.MouseRelease, (byte)button);
             _sender.SendFrame(frame, _ => _mousePressTimes[button] = null);
         }
 
@@ -274,7 +276,7 @@ namespace SerialKeyboardMouse
         public Task MouseReleaseButtonAsync(MouseButton button)
         {
             CheckMouseButton(button);
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, (byte)button);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.MouseRelease, (byte)button);
             return _sender.SendFrameAsync(frame, _ => _mousePressTimes[button] = null);
         }
 
@@ -287,7 +289,7 @@ namespace SerialKeyboardMouse
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public void MouseReleaseAllButtons()
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, SerialSymbols.ReleaseAllKeys);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.MouseRelease, SerialSymbols.ReleaseAllKeys);
             _sender.SendFrame(frame, _ =>
             {
                 foreach (var k in Enum.GetValues<MouseButton>())
@@ -307,7 +309,7 @@ namespace SerialKeyboardMouse
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task MouseReleaseAllButtonsAsync()
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.MouseRelease, SerialSymbols.ReleaseAllKeys);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.MouseRelease, SerialSymbols.ReleaseAllKeys);
             return _sender.SendFrameAsync(frame, _ =>
             {
                 foreach (var k in Enum.GetValues<MouseButton>())
@@ -327,7 +329,7 @@ namespace SerialKeyboardMouse
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public void KeyboardPress(HidKeyboardUsage key)
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardPress, (byte)key);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.KeyboardPress, (byte)key);
             _sender.SendFrame(frame, t => _keyboardPressTimes[key] = t);
         }
 
@@ -341,7 +343,7 @@ namespace SerialKeyboardMouse
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task KeyboardPressAsync(HidKeyboardUsage key)
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardPress, (byte)key);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.KeyboardPress, (byte)key);
             return _sender.SendFrameAsync(frame, t => _keyboardPressTimes[key] = t);
         }
 
@@ -356,7 +358,7 @@ namespace SerialKeyboardMouse
         /// <remarks>We don't check for repeated release, because Arduino will handle it. </remarks>
         public void KeyboardRelease(HidKeyboardUsage key)
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, (byte)key);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, (byte)key);
             _sender.SendFrame(frame, _ => _keyboardPressTimes[key] = null);
         }
 
@@ -371,7 +373,7 @@ namespace SerialKeyboardMouse
         /// <remarks>We don't check for repeated release, because Arduino will handle it. </remarks>
         public Task KeyboardReleaseAsync(HidKeyboardUsage key)
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, (byte)key);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, (byte)key);
             return _sender.SendFrameAsync(frame, _ => _keyboardPressTimes[key] = null);
         }
 
@@ -384,7 +386,7 @@ namespace SerialKeyboardMouse
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public void KeyboardReleaseAll()
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, SerialSymbols.ReleaseAllKeys);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, SerialSymbols.ReleaseAllKeys);
             _sender.SendFrame(frame, _ =>
             {
                 foreach (var k in Enum.GetValues<HidKeyboardUsage>())
@@ -403,7 +405,7 @@ namespace SerialKeyboardMouse
         /// <exception cref="SerialDeviceException">If command failed.</exception>
         public Task KeyboardReleaseAllAsync()
         {
-            SerialCommandFrame frame = SerialCommandFrame.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, SerialSymbols.ReleaseAllKeys);
+            SerialCommandFrame frame = _frameBuilder.OfKeyType(SerialSymbols.FrameType.KeyboardRelease, SerialSymbols.ReleaseAllKeys);
             return _sender.SendFrameAsync(frame, _ =>
             {
                 foreach (var k in Enum.GetValues<HidKeyboardUsage>())

@@ -108,40 +108,6 @@ public:
     }
 };
 
-class XorChecksum : public shd::cpp::Checksum
-{
-public:
-    size_t compute(const uint8_t* data, size_t len, uint8_t* out, size_t out_cap) override
-    {
-        if (out == nullptr || out_cap == 0u)
-        {
-            return 0u;
-        }
-
-        uint8_t checksum = 0u;
-        for (size_t i = 0; i < len; ++i)
-        {
-            checksum ^= data[i];
-        }
-        out[0] = checksum;
-        return 1u;
-    }
-
-    bool checksum_ok(const uint8_t* data,
-                     size_t len,
-                     const uint8_t* expected,
-                     size_t expected_len) override
-    {
-        uint8_t computed = 0u;
-        if (expected == nullptr || expected_len != 1u)
-        {
-            return false;
-        }
-        compute(data, len, &computed, 1u);
-        return computed == expected[0];
-    }
-};
-
 class ArduinoClock : public shd::cpp::Clock
 {
 public:
@@ -156,10 +122,9 @@ static ArduinoSerialIo g_serial_io(ControlSerial);
 static ArduinoKeyboard g_keyboard;
 static ArduinoRelMouse g_rel_mouse;
 static ArduinoAbsMouse g_abs_mouse;
-static XorChecksum g_checksum;
 static ArduinoClock g_clock;
 
-static shd::cpp::Core g_core(g_serial_io, g_keyboard, g_rel_mouse, g_abs_mouse, g_checksum, g_clock);
+static shd::cpp::Core g_core(g_serial_io, g_keyboard, g_rel_mouse, g_abs_mouse, g_clock);
 
 // the setup function runs once when you press reset or power the board
 void setup()

@@ -134,7 +134,7 @@ namespace SerialKeyboardMouse.Serial
 
             SenderTask task = new SenderTask(frame, onSucceed);
 
-            if (!ValidFrameBytes(task.Frame.Bytes.Span))
+            if (!ValidFrameBytes(task.Frame.Bytes))
             {
                 throw new ArgumentException("Invalid frame bytes!");
             }
@@ -200,11 +200,10 @@ namespace SerialKeyboardMouse.Serial
         /// <returns>The time immediately before sending the frame.</returns>
         private void SendAndWaitForLoopback(SerialCommandFrame toSend, Action<DateTime> onSucceed)
         {
-            int length = toSend.Length;
-            Span<byte> bytes = toSend.Bytes.Span;
+            Span<byte> bytes = toSend.Bytes;
             DateTime sendTime = DateTime.MinValue; // This value should not be used anyway
             bool succeed = false;
-            Span<byte> readBack = stackalloc byte[length];
+            Span<byte> readBack = stackalloc byte[SerialSymbols.MaxFrameLength];
 
             // Loop for retry
             for (int i = 0; i < NumMaxRetries; ++i)
@@ -220,25 +219,34 @@ namespace SerialKeyboardMouse.Serial
                     // Send command
                     _serial.Write(bytes);
 
-                    // Wait loop back
-                    _serial.Read(readBack);
-                    if (!bytes.SequenceEqual(readBack))
+                    // Read reply
+                    _serial.Read(readBack.Slice(0, 2));
+                    var replyLength = readBack[1];
+                    if (readBack[0] == SerialSymbols.FrameStart)
                     {
-                        Trace.WriteLine("SerialKeyboardMouse.Serial.ReliableFrameSender: Retry!");
-                        // Retry delay if needed
-                        if ((toSend.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
-                            || (toSend.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
+                        _serial.Read(readBack.Slice(2, replyLength));
+                        var readBackId = BitConverter.ToUInt16(readBack.Slice(2, 2));
+                        var readBackChecksum = readBack[2 + replyLength - 1];
+                        if (readBackId == toSend.FrameId &&
+                            SerialSymbols.CrcChecker(readBack.Slice(2, replyLength - 1), readBackChecksum))
                         {
-                            Thread.Sleep(RetryInterval + _random.Next(-20, 20));
+                            _loopBackStopwatch.Stop();
+                            succeed = true;
+                            onSucceed?.Invoke(sendTime);
+                            break;
                         }
-                        // Clean serial buffer
-                        _serial.DiscardReadBuffer();
-                        continue;
                     }
-                    _loopBackStopwatch.Stop();
-                    succeed = true;
-                    onSucceed?.Invoke(sendTime);
-                    break;
+
+                    // On Failed
+                    Trace.WriteLine("SerialKeyboardMouse.Serial.ReliableFrameSender: Retry!");
+                    // Retry delay if needed
+                    if ((toSend.Type == SerialSymbols.FrameType.MouseMove && EnableMouseMoveRetryDelay)
+                        || (toSend.Type != SerialSymbols.FrameType.MouseMove && EnableKeyRetryDelay))
+                    {
+                        Thread.Sleep(RetryInterval + _random.Next(-20, 20));
+                    }
+                    // Clean serial buffer
+                    _serial.DiscardReadBuffer();
                 }
                 catch (Exception e)
                 {
@@ -269,14 +277,14 @@ namespace SerialKeyboardMouse.Serial
                 return false;
             }
 
-            SerialSymbols.FrameType type = (SerialSymbols.FrameType)span[2];
+            SerialSymbols.FrameType type = (SerialSymbols.FrameType)span[4];
             if (!SerialSymbols.ValidFrameTypes.Contains(type))
             {
                 return false;
             }
 
             byte checksum = span[length - 1];
-            if (!SerialSymbols.XorChecker(span.Slice(2, length - 3), checksum))
+            if (!SerialSymbols.CrcChecker(span.Slice(2, length - 3), checksum))
             {
                 return false;
             }

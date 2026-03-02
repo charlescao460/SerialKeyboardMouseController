@@ -1,53 +1,54 @@
 # serial_hid_core
 
-`serial_hid_core` is a C-first embedded library for parsing a fixed serial HID protocol and dispatching actions through injected interfaces.
+`serial_hid_core` is a C-first embedded library for parsing fixed serial HID request frames and producing typed reply frames.
 
 ## Features
-- Fixed protocol parser and dispatcher (`0xAB <Length> <Data...> <Checksum>`)
+- Fixed request/reply protocol with 16-bit Frame ID
+- CRC-8 integrity check (default pure C implementation, no lookup table)
+- Optional hardware CRC-8 override callback
 - No dynamic allocation in core
-- C ABI for broad MCU/toolchain compatibility
+- C ABI for C-only toolchains
 - Optional C++ wrapper layer
-- Pluggable checksum backend (software or hardware CRC/XOR)
-- Always sends ACK (loopback frame) after successful command execution
 
-## Folder Layout
-- `include/serial_hid_types.h`: protocol constants, enums, status codes
-- `include/serial_hid_interfaces.h`: callback interfaces (serial, HID, checksum, clock, logger)
-- `include/serial_hid_core.h`: C core API + protocol docs
-- `include/serial_hid_cpp.hpp`: optional C++ wrapper API
-- `src/serial_hid_core.c`: core implementation
-- `src/serial_hid_cpp.cpp`: C++ adapters/wrapper implementation
+## Frame Format
+Request:
+- `0xAB <Length> <FrameId:2 LE> <ReqType:1> <ReqPayload...> <CRC8:1>`
 
-## Protocol Summary
-Frame format:
-- `0xAB <Length> <Data...> <Checksum>`
+Reply:
+- `0xAB <Length> <FrameId:2 LE> <ReplyType:1> <ReplyPayload...> <CRC8:1>`
 
-Rules:
-- `Length` includes `<Data...>` and `<Checksum>` bytes
-- `SHD_MAX_DATA_LENGTH` limits `<Length>`
-- Checksum format is provided by your `shd_checksum_t`
-- Current project default checksum is 1-byte XOR
+Length rule:
+- `Length` is byte count from `FrameId` through `CRC8`.
 
-Supported command payloads:
-- Relative move: `<Type> <dx:2 LE> <dy:2 LE>`
-- Absolute move: `<Type> <x:2 LE> <y:2 LE>`
-- Scroll: `<Type> <step>`
-- Mouse press/release: `<Type> <buttons>`
-- Resolution: `<Type> <width:2 LE> <height:2 LE>`
-- Key press/release: `<Type> <scan_code>`
+CRC-8 rule:
+- CRC input is `FrameId + Type + Payload`.
+- Start byte and length byte are excluded.
+- Default CRC parameters: poly `0x07`, init `0x00`, no reflection, xorout `0x00`.
 
-## Integration (C API)
-1. Include headers:
-- `#include "serial_hid_core.h"`
+## Request and Reply Types
+See:
+- `include/serial_hid_types.h` (`shd_frame_type_t`, `shd_reply_type_t`)
 
-2. Implement callbacks in `shd_core_deps_t`:
-- Required: `serial`, `keyboard`, `rel_mouse`, `abs_mouse`, `checksum`, `clock`
-- Optional: `logger`
+Currently implemented requests:
+- Relative mouse move
+- Absolute mouse move
+- Mouse scroll / press / release
+- Mouse resolution
+- Key press / release
 
-3. Initialize and run:
+Current reply behavior:
+- Successful operation -> `SHD_REPLY_OP_OK` with same `FrameId`
+- Query request enums are declared for future expansion but not implemented yet
+
+## C Integration
+1. Include `serial_hid_core.h`
+2. Provide `shd_core_deps_t` callbacks:
+- Required: serial, keyboard, rel_mouse, abs_mouse, clock
+- Optional: crc8 override, logger
+3. Init and run:
 - `shd_core_init(&core, &deps);`
 - `shd_core_set_timeout_ms(&core, timeout_ms);`
-- call `shd_core_tick(&core);` in main loop
+- call `shd_core_tick(&core);` in your main loop
 
 ### Minimal C Example
 ```c
@@ -55,66 +56,25 @@ Supported command payloads:
 
 static shd_core_t g_core;
 
-int main(void) {
-    shd_core_deps_t deps;
-    /* fill deps callbacks + ctx pointers */
-
-    shd_core_init(&g_core, &deps);
+void app_init(const shd_core_deps_t* deps) {
+    shd_core_init(&g_core, deps);
     shd_core_set_timeout_ms(&g_core, 5u);
+}
 
-    for (;;) {
-        (void)shd_core_tick(&g_core);
-    }
+void app_loop(void) {
+    (void)shd_core_tick(&g_core);
 }
 ```
 
-## Integration (C++ Wrapper)
-1. Include:
-- `#include "serial_hid_cpp.hpp"`
+## C++ Integration
+Include `serial_hid_cpp.hpp`, implement adapter classes, then construct `shd::cpp::Core`.
 
-2. Implement C++ adapter classes:
-- `shd::cpp::SerialIo`, `Keyboard`, `RelMouse`, `AbsMouse`, `Checksum`, `Clock`
-- optional: `Logger`
-
-3. Construct wrapper core and tick in loop.
-
-### Minimal C++ Example
+Constructor:
 ```cpp
-#include "serial_hid_cpp.hpp"
-
-class MySerial : public shd::cpp::SerialIo { /* ... */ };
-class MyKeyboard : public shd::cpp::Keyboard { /* ... */ };
-class MyRelMouse : public shd::cpp::RelMouse { /* ... */ };
-class MyAbsMouse : public shd::cpp::AbsMouse { /* ... */ };
-class MyChecksum : public shd::cpp::Checksum { /* ... */ };
-class MyClock : public shd::cpp::Clock { /* ... */ };
-
-MySerial serial;
-MyKeyboard keyboard;
-MyRelMouse rel_mouse;
-MyAbsMouse abs_mouse;
-MyChecksum checksum;
-MyClock clock;
-
-shd::cpp::Core core(serial, keyboard, rel_mouse, abs_mouse, checksum, clock);
-
-void loop() {
-    (void)core.tick();
-}
+shd::cpp::Core core(serial, keyboard, rel_mouse, abs_mouse, clock,
+                    /*crc8*/ nullptr,
+                    /*logger*/ nullptr);
 ```
 
-## Callback Contract Notes
-- `serial.read_bytes` may return fewer bytes than requested; core handles accumulation.
-- Core timeout is enforced using `clock.now_ms` + `shd_core_set_timeout_ms`.
-- `checksum.checksum_ok` is optional. If null, core falls back to `checksum.compute` comparison.
-- If a frame executes successfully, ACK is always written using `serial.write_bytes`.
-
-## Status Handling
-`shd_core_tick` returns `shd_status_t`, including:
-- `SHD_STATUS_OK`
-- `SHD_STATUS_NO_DATA`
-- `SHD_STATUS_TIMEOUT`
-- `SHD_STATUS_CHECKSUM_MISMATCH`
-- `SHD_STATUS_UNSUPPORTED_FRAME`
-- `SHD_STATUS_BAD_DEPENDENCY`
+If you have hardware CRC-8, pass a `shd::cpp::Crc8` implementation.
 

@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SerialKeyboardMouse.Serial
 {
@@ -16,9 +17,11 @@ namespace SerialKeyboardMouse.Serial
 
         public const byte FrameStart = 0xAB;
 
-        public const int MinFrameLength = 5; // 0xAB <Length> <Type> <Value> <Checksum>
+        public const int MinDataLength = 5; // <ID (2-byte)> <Type> <Value> <Checksum>
 
-        public const int MaxDataLength = 6; // Coordinate type, 4-byte coordinates + <Type> + <Checksum>
+        public const int MinFrameLength = 7; // 0xAB <Length> <ID (2-byte)> <Type> <Value> <Checksum>
+
+        public const int MaxDataLength = 16;
 
         public const int MaxFrameLength = MaxDataLength + 2;
 
@@ -35,6 +38,14 @@ namespace SerialKeyboardMouse.Serial
             KeyboardRelease = 0xBC,
 
             Unknown = 0xFF
+        }
+
+        public enum ReplyType : byte
+        {
+            OperationSucceed = 0x01,
+            OperationError = 0x02,
+            KeyboardLockStatus = 0x20,
+            HostStatus = 0x21,
         }
 
         public const int ReleaseAllKeys = 0x00;
@@ -65,15 +76,15 @@ namespace SerialKeyboardMouse.Serial
         /// </summary>
         public static readonly Dictionary<FrameType, int> FrameLengthLookup = new()
         {
-            { FrameType.MouseMoveRelatively, 8 }, // 0xAB 0x06 0xA0 <4-byte coordinate> <Checksum>
-            { FrameType.MouseMove, 8 }, // 0xAB 0x06 0xAA <4-byte coordinate> <Checksum>
-            { FrameType.MouseScroll, 5 }, // 0xAB 0x03 0xAB <Value> <Checksum>
-            { FrameType.MousePress, 5 }, // 0xAB 0x03 0xAC <Key> <Checksum>
-            { FrameType.MouseRelease, 5 }, // 0xAB 0x03 0xAD <Key> <Checksum>
-            { FrameType.MouseResolution, 8 }, // 0xAB 0x06 0xAA <4-byte resolution> <Checksum>
+            { FrameType.MouseMoveRelatively, 10 }, // 0xAB <2-byte ID> 0x06 0xA0 <4-byte coordinate> <Checksum>
+            { FrameType.MouseMove, 10 }, // 0xAB <2-byte ID> 0x06 0xAA <4-byte coordinate> <Checksum>
+            { FrameType.MouseScroll, 7 }, // 0xAB <2-byte ID> 0x03 0xAB <Value> <Checksum>
+            { FrameType.MousePress, 7 }, // 0xAB <2-byte ID> 0x03 0xAC <Key> <Checksum>
+            { FrameType.MouseRelease, 7 }, // 0xAB <2-byte ID> 0x03 0xAD <Key> <Checksum>
+            { FrameType.MouseResolution, 10 }, // 0xAB <2-byte ID> 0x06 0xAA <4-byte resolution> <Checksum>
 
-            { FrameType.KeyboardPress, 5 }, // 0xAB 0x03 0xBB <Key> <Checksum>
-            { FrameType.KeyboardRelease, 5 } // 0xAB 0x03 0xBC <Key> <Checksum>
+            { FrameType.KeyboardPress, 7 }, // 0xAB <2-byte ID> 0x03 0xBB <Key> <Checksum>
+            { FrameType.KeyboardRelease, 7 } // 0xAB <2-byte ID> 0x03 0xBC <Key> <Checksum>
         };
 
         /// <summary>
@@ -81,23 +92,33 @@ namespace SerialKeyboardMouse.Serial
         /// </summary>
         public static readonly HashSet<FrameType> ValidFrameTypes = [.. FrameLengthLookup.Keys];
 
-        public static byte XorChecksum(Span<byte> memory)
+        public static byte CrcChecksum(Span<byte> data)
         {
-            if (memory.Length == 0)
+            byte crc = 0x00;
+
+            foreach (byte b in data)
             {
-                return 0;
+                crc ^= b;
+
+                for (int i = 0; i < 8; i++)
+                {
+                    if ((crc & 0x80) != 0)
+                    {
+                        crc = (byte)((crc << 1) ^ 0x07);
+                    }
+                    else
+                    {
+                        crc <<= 1;
+                    }
+                }
             }
-            byte ret = memory[0];
-            for (int i = 1; i < memory.Length; ++i)
-            {
-                ret ^= memory[i];
-            }
-            return ret;
+
+            return crc;
         }
 
-        internal static bool XorChecker(Span<byte> memory, byte desired)
+        internal static bool CrcChecker(Span<byte> memory, byte desired)
         {
-            return XorChecksum(memory) == desired;
+            return CrcChecksum(memory) == desired;
         }
     }
 }

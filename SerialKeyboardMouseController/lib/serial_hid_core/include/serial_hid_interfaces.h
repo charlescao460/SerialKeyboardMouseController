@@ -14,21 +14,10 @@ extern "C" {
 
 /** @brief Serial I/O callbacks used by the core parser. */
 typedef struct shd_serial_io {
-    /** @brief User context passed to callbacks. */
     void* ctx;
-    /** @brief Returns number of bytes ready to read, or 0 if none. */
     int (*available)(void* ctx);
-    /** @brief Reads one byte, or returns -1 if no data is available. */
     int (*read_byte)(void* ctx);
-    /**
-     * @brief Reads up to @p len bytes into @p dst.
-     * @return Number of bytes copied to @p dst.
-     */
     size_t (*read_bytes)(void* ctx, uint8_t* dst, size_t len);
-    /**
-     * @brief Writes @p len bytes from @p src.
-     * @return Number of bytes written.
-     */
     size_t (*write_bytes)(void* ctx, const uint8_t* src, size_t len);
 } shd_serial_io_t;
 
@@ -56,24 +45,16 @@ typedef struct shd_abs_mouse {
     void (*change_resolution)(void* ctx, uint16_t width, uint16_t height);
 } shd_abs_mouse_t;
 
-/** @brief Checksum callbacks used for payload integrity verification. */
-typedef struct shd_checksum {
+/**
+ * @brief Optional hardware CRC-8 callback.
+ *
+ * If null, the core uses its default software CRC-8 implementation
+ * (polynomial 0x07, init 0x00, no reflection, xorout 0x00).
+ */
+typedef struct shd_crc8 {
     void* ctx;
-    /**
-     * @brief Computes checksum bytes for @p data.
-     * @return Number of checksum bytes written to @p out.
-     */
-    size_t (*compute)(void* ctx, const uint8_t* data, size_t len, uint8_t* out, size_t out_cap);
-    /**
-     * @brief Verifies checksum bytes attached to @p data.
-     * @return true when checksum matches.
-     */
-    bool (*checksum_ok)(void* ctx,
-                        const uint8_t* data,
-                        size_t len,
-                        const uint8_t* expected,
-                        size_t expected_len);
-} shd_checksum_t;
+    uint8_t (*compute)(void* ctx, const uint8_t* data, size_t len);
+} shd_crc8_t;
 
 /** @brief Monotonic millisecond clock used for timeout handling. */
 typedef struct shd_clock {
@@ -93,7 +74,7 @@ typedef struct shd_core_deps {
     shd_keyboard_t keyboard;
     shd_rel_mouse_t rel_mouse;
     shd_abs_mouse_t abs_mouse;
-    shd_checksum_t checksum;
+    shd_crc8_t crc8;
     shd_clock_t clock;
     shd_logger_t logger;
 } shd_core_deps_t;
