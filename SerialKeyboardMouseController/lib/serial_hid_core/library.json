@@ -1,0 +1,9 @@
+{
+  "name": "serial_hid_core",
+  "version": "0.1.0",
+  "description": "C-first serial HID protocol core with optional C++ wrappers",
+  "build": {
+    "includeDir": "include",
+    "srcDir": "src"
+  }
+}
