@@ -2,7 +2,6 @@
 #define DEBUG_PRINT_H_
 
 #include <Arduino.h>
-#include <USBDesc.h>
 
 //#define _DEBUG
 

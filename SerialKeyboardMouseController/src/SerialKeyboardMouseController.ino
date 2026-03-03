@@ -8,7 +8,6 @@
 #include <Arduino.h>
 #include "Keyboard.h"
 #include "AbsMouse.h"
-#include "Mouse.h"
 #include "debug_print.h"
 #include "serial_hid_cpp.hpp"
 
@@ -68,6 +67,11 @@ public:
     {
         ::Keyboard.releaseAll();
     }
+
+    uint8_t get_lock_state() override
+    {
+        return ::Keyboard.lock_status();
+    }
 };
 
 class ArduinoRelMouse : public shd::cpp::RelMouse
@@ -75,7 +79,7 @@ class ArduinoRelMouse : public shd::cpp::RelMouse
 public:
     void move(int8_t dx, int8_t dy) override
     {
-        Mouse.move(dx, dy);
+        ::AbsMouse.moveRelative(dx, dy);
     }
 
     void scroll(int8_t step) override
@@ -117,14 +121,24 @@ public:
     }
 };
 
+class ArduinoHost : public shd::cpp::Host
+{
+public:
+    uint8_t get_status_flags() override
+    {
+        return HID().hostStatusFlags();
+    }
+};
+
 /****************************** Globals *******************************/
 static ArduinoSerialIo g_serial_io(ControlSerial);
 static ArduinoKeyboard g_keyboard;
 static ArduinoRelMouse g_rel_mouse;
 static ArduinoAbsMouse g_abs_mouse;
+static ArduinoHost g_host;
 static ArduinoClock g_clock;
 
-static shd::cpp::Core g_core(g_serial_io, g_keyboard, g_rel_mouse, g_abs_mouse, g_clock);
+static shd::cpp::Core g_core(g_serial_io, g_keyboard, g_rel_mouse, g_abs_mouse, g_host, g_clock);
 
 // the setup function runs once when you press reset or power the board
 void setup()
@@ -140,7 +154,6 @@ void setup()
     ControlSerial.setTimeout(SERIAL_TIMEOUT);
 
     ::Keyboard.begin();
-    ::Mouse.begin();
     ::AbsMouse.init(SHD_MAX_RESOLUTION_WIDTH, SHD_MAX_RESOLUTION_HEIGHT, true);
 
     g_core.set_timeout_ms(SERIAL_TIMEOUT);

@@ -59,10 +59,26 @@ typedef enum shd_frame_type {
 typedef enum shd_reply_type {
     SHD_REPLY_OP_OK = 0x01u,
     SHD_REPLY_OP_ERROR = 0x02u,
+    SHD_REPLY_INVALID = 0x03u,
+    SHD_REPLY_TIMEOUT = 0x04u,
 
     SHD_REPLY_KEYBOARD_LOCK = 0x20u,
     SHD_REPLY_HOST_STATUS = 0x21u
 } shd_reply_type_t;
+
+/** @brief Keyboard lock state payload flags for SHD_REPLY_KEYBOARD_LOCK. */
+typedef enum shd_keyboard_lock_flag {
+    SHD_KEYBOARD_LOCK_NUM = 0x01u,
+    SHD_KEYBOARD_LOCK_CAPS = 0x02u,
+    SHD_KEYBOARD_LOCK_SCROLL = 0x04u
+} shd_keyboard_lock_flag_t;
+
+/** @brief Host status payload flags for SHD_REPLY_HOST_STATUS. */
+typedef enum shd_host_status_flag {
+    SHD_HOST_STATUS_CONFIGURED = 0x01u,
+    SHD_HOST_STATUS_SUSPENDED = 0x02u,
+    SHD_HOST_STATUS_SOF_ACTIVE = 0x04u
+} shd_host_status_flag_t;
 
 /** @brief Mouse button bit flags used by press/release commands. */
 typedef enum shd_mouse_button {

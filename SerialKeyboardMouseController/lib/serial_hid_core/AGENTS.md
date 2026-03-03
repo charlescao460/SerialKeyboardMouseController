@@ -19,12 +19,17 @@ These instructions apply to contributions for the `serial_hid_core` library.
 - `Length` includes `FrameId + Type + Payload + CRC8`.
 - CRC is CRC-8 over `FrameId + Type + Payload` only.
 - Existing keyboard/mouse operations return `SHD_REPLY_OP_OK` on success.
+- Request execution errors return `SHD_REPLY_OP_ERROR` with a 1-byte `shd_status_t` payload.
+- Invalid/corrupted frames return `SHD_REPLY_INVALID` when possible.
+- Read timeouts while receiving a frame return `SHD_REPLY_TIMEOUT` when possible.
+- Error replies use parsed `FrameId` when available; otherwise use `0xFFFF`.
 - `SHD_RELEASE_ALL_KEYS` behavior must stay intact for key and mouse release paths.
 - Absolute move coordinates must remain non-zero and within current resolution bounds.
 
 ## Interface Contracts
 - `shd_core_deps_t` is the only integration boundary.
 - Required dependencies must be non-null.
+- `keyboard.get_lock_state` and `host.get_status_flags` are required.
 - `logger` is optional.
 - `crc8.compute` is optional; if absent, core must use built-in software CRC-8.
 - Timeout policy belongs to core via `shd_core_set_timeout_ms`.

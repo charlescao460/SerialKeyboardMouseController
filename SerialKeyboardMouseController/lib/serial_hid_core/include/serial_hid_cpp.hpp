@@ -28,6 +28,7 @@ public:
     virtual void press_scan_code(uint8_t key) = 0;
     virtual void release_scan_code(uint8_t key) = 0;
     virtual void release_all() = 0;
+    virtual uint8_t get_lock_state() = 0;
 };
 
 class RelMouse
@@ -70,6 +71,13 @@ public:
     virtual void log(const char* msg) = 0;
 };
 
+class Host
+{
+public:
+    virtual ~Host() {}
+    virtual uint8_t get_status_flags() = 0;
+};
+
 shd_serial_io_t make_c_serial(SerialIo& serial);
 shd_keyboard_t make_c_keyboard(Keyboard& keyboard);
 shd_rel_mouse_t make_c_rel_mouse(RelMouse& mouse);
@@ -77,6 +85,7 @@ shd_abs_mouse_t make_c_abs_mouse(AbsMouse& mouse);
 shd_crc8_t make_c_crc8(Crc8& crc8);
 shd_clock_t make_c_clock(Clock& clock);
 shd_logger_t make_c_logger(Logger& logger);
+shd_host_t make_c_host(Host& host);
 
 class Core
 {
@@ -86,6 +95,7 @@ public:
          Keyboard& keyboard,
          RelMouse& rel_mouse,
          AbsMouse& abs_mouse,
+         Host& host,
          Clock& clock,
          Crc8* crc8 = 0,
          Logger* logger = 0);

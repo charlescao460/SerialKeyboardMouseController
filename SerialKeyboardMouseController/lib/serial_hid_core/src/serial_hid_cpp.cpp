@@ -40,6 +40,11 @@ void keyboard_release_all(void* ctx)
     static_cast<Keyboard*>(ctx)->release_all();
 }
 
+uint8_t keyboard_get_lock_state(void* ctx)
+{
+    return static_cast<Keyboard*>(ctx)->get_lock_state();
+}
+
 void rel_mouse_move(void* ctx, int8_t dx, int8_t dy)
 {
     static_cast<RelMouse*>(ctx)->move(dx, dy);
@@ -85,6 +90,11 @@ void logger_log(void* ctx, const char* msg)
     static_cast<Logger*>(ctx)->log(msg);
 }
 
+uint8_t host_status_flags(void* ctx)
+{
+    return static_cast<Host*>(ctx)->get_status_flags();
+}
+
 } // namespace
 
 shd_serial_io_t make_c_serial(SerialIo& serial)
@@ -105,6 +115,7 @@ shd_keyboard_t make_c_keyboard(Keyboard& keyboard)
     out.press_scan_code = &keyboard_press;
     out.release_scan_code = &keyboard_release;
     out.release_all = &keyboard_release_all;
+    out.get_lock_state = &keyboard_get_lock_state;
     return out;
 }
 
@@ -152,6 +163,14 @@ shd_logger_t make_c_logger(Logger& logger)
     return out;
 }
 
+shd_host_t make_c_host(Host& host)
+{
+    shd_host_t out;
+    out.ctx = &host;
+    out.get_status_flags = &host_status_flags;
+    return out;
+}
+
 Core::Core(const shd_core_deps_t& deps)
     : core_(), deps_(deps)
 {
@@ -162,6 +181,7 @@ Core::Core(SerialIo& serial,
            Keyboard& keyboard,
            RelMouse& rel_mouse,
            AbsMouse& abs_mouse,
+           Host& host,
            Clock& clock,
            Crc8* crc8,
            Logger* logger)
@@ -171,6 +191,7 @@ Core::Core(SerialIo& serial,
     deps_.keyboard = make_c_keyboard(keyboard);
     deps_.rel_mouse = make_c_rel_mouse(rel_mouse);
     deps_.abs_mouse = make_c_abs_mouse(abs_mouse);
+    deps_.host = make_c_host(host);
     if (crc8 != 0)
     {
         deps_.crc8 = make_c_crc8(*crc8);

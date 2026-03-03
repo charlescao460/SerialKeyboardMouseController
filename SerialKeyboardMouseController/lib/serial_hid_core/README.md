@@ -35,15 +35,21 @@ Currently implemented requests:
 - Mouse scroll / press / release
 - Mouse resolution
 - Key press / release
+- Keyboard lock query
+- Host status query
 
 Current reply behavior:
 - Successful operation -> `SHD_REPLY_OP_OK` with same `FrameId`
-- Query request enums are declared for future expansion but not implemented yet
+- Keyboard lock query -> `SHD_REPLY_KEYBOARD_LOCK` + 1 byte lock bitmask
+- Host status query -> `SHD_REPLY_HOST_STATUS` + 1 byte host-status bitmask
+- Valid request with execution error -> `SHD_REPLY_OP_ERROR` + 1 byte `shd_status_t`
+- Invalid/corrupted frames -> `SHD_REPLY_INVALID` (best-effort `FrameId`, or `0xFFFF`)
+- Read timeout while receiving frame -> `SHD_REPLY_TIMEOUT` (best-effort `FrameId`, or `0xFFFF`)
 
 ## C Integration
 1. Include `serial_hid_core.h`
 2. Provide `shd_core_deps_t` callbacks:
-- Required: serial, keyboard, rel_mouse, abs_mouse, clock
+- Required: serial, keyboard, rel_mouse, abs_mouse, host, clock
 - Optional: crc8 override, logger
 3. Init and run:
 - `shd_core_init(&core, &deps);`
@@ -71,10 +77,10 @@ Include `serial_hid_cpp.hpp`, implement adapter classes, then construct `shd::cp
 
 Constructor:
 ```cpp
-shd::cpp::Core core(serial, keyboard, rel_mouse, abs_mouse, clock,
+shd::cpp::Core core(serial, keyboard, rel_mouse, abs_mouse, host, clock,
                     /*crc8*/ nullptr,
                     /*logger*/ nullptr);
 ```
 
 If you have hardware CRC-8, pass a `shd::cpp::Crc8` implementation.
-
+Implement `Keyboard::get_lock_state()` and `Host::get_status_flags()` for query support.

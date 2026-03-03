@@ -36,13 +36,27 @@ extern "C" {
  *
  * Reply behavior:
  *   Existing keyboard/mouse requests return SHD_REPLY_OP_OK with the same FrameId.
- *   Query reply types are reserved for future use.
+ *   Keyboard lock query returns SHD_REPLY_KEYBOARD_LOCK + 1-byte lock bitmask.
+ *   Host status query returns SHD_REPLY_HOST_STATUS + 1-byte host flag bitmask.
+ *   Request execution errors return SHD_REPLY_OP_ERROR + 1-byte shd_status_t value.
  *
  * Example request (mouse left press, FrameId=0x1234):
  *   AB 05 34 12 AC 01 66
  *
  * Example reply (operation succeed, FrameId=0x1234):
  *   AB 04 34 12 01 30
+ *
+ * Example request (query keyboard locks, FrameId=0x1234):
+ *   AB 04 34 12 C0 79
+ *
+ * Example reply (NumLock+CapsLock set, FrameId=0x1234):
+ *   AB 05 34 12 20 03 22
+ *
+ * Example request (query host status, FrameId=0x1235):
+ *   AB 04 35 12 C1 15
+ *
+ * Example reply (configured + SOF active, FrameId=0x1235):
+ *   AB 05 35 12 21 05 33
  */
 
 /**

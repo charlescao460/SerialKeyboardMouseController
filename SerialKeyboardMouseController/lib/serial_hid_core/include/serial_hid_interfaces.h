@@ -27,6 +27,7 @@ typedef struct shd_keyboard {
     void (*press_scan_code)(void* ctx, uint8_t key);
     void (*release_scan_code)(void* ctx, uint8_t key);
     void (*release_all)(void* ctx);
+    uint8_t (*get_lock_state)(void* ctx);
 } shd_keyboard_t;
 
 /** @brief Relative mouse callbacks for move/scroll/button actions. */
@@ -68,6 +69,12 @@ typedef struct shd_logger {
     void (*log)(void* ctx, const char* msg);
 } shd_logger_t;
 
+/** @brief Host status callbacks for query operations. */
+typedef struct shd_host {
+    void* ctx;
+    uint8_t (*get_status_flags)(void* ctx);
+} shd_host_t;
+
 /** @brief Aggregated runtime dependencies required by the core. */
 typedef struct shd_core_deps {
     shd_serial_io_t serial;
@@ -77,6 +84,7 @@ typedef struct shd_core_deps {
     shd_crc8_t crc8;
     shd_clock_t clock;
     shd_logger_t logger;
+    shd_host_t host;
 } shd_core_deps_t;
 
 #ifdef __cplusplus

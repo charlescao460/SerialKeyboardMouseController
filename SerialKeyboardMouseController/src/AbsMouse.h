@@ -1,26 +1,3 @@
-/*
-
-Modified based on: https://github.com/jonathanedgecombe/absmouse
-
-Original LICENSE:
-
-Copyright (c) 2017 Jonathan Edgecombe <jonathanedgecombe@gmail.com>
-
-Permission to use, copy, modify, and distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-*/
-
-
 #ifndef ABSMOUSE_h
 #define ABSMOUSE_h
 
@@ -34,24 +11,28 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 class AbsMouse_
 {
-private:
-    uint8_t _buttons;
-    int8_t _scroll;
-    uint16_t _x;
-    uint16_t _y;
-    uint32_t _width;
-    uint32_t _height;
-    bool _autoReport;
-
 public:
-    AbsMouse_(void);
-    void init(uint16_t width = 32767, uint16_t height = 32767, bool autoReport = true);
-    void report(void);
+    AbsMouse_();
+
+    void init(uint16_t width = 32767u, uint16_t height = 32767u, bool autoReport = true);
+    void report();
+
     void move(uint16_t x, uint16_t y);
+    void moveRelative(int8_t dx, int8_t dy);
     void scroll(int8_t wheel);
-    void press(uint8_t b);
-    void release(uint8_t b);
+    void press(uint8_t buttons);
+    void release(uint8_t buttons);
+
+private:
+    void send_absolute_report(uint16_t x, uint16_t y, int8_t wheel);
+    void send_relative_report(int8_t dx, int8_t dy, int8_t wheel);
+
+    uint8_t buttons_;
+    uint16_t width_;
+    uint16_t height_;
+    bool auto_report_;
 };
+
 extern AbsMouse_ AbsMouse;
 
 #endif
