@@ -65,9 +65,9 @@ typedef enum shd_reset_mode {
 /** @brief Reply frame type IDs from device to host. */
 typedef enum shd_reply_type {
     SHD_REPLY_OP_OK = 0x01u, // HID report succeed
-    SHD_REPLY_OP_ERROR = 0x02u, // HID report error, including timeout waiting host polls
+    SHD_REPLY_OP_ERROR = 0x02u, // HID report error, including timeout in HID report or USB-related.
     SHD_REPLY_INVALID = 0x03u, // Invalid frame
-    SHD_REPLY_TIMEOUT = 0x04u, // Timeout on serial input. 
+    SHD_REPLY_TIMEOUT = 0x04u, // Timeout on serial read, NOT the timeout related to HID. 
 
     SHD_REPLY_KEYBOARD_LOCK = 0x20u,
     SHD_REPLY_HOST_STATUS = 0x21u

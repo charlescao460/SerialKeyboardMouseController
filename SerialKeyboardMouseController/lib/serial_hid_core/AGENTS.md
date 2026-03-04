@@ -8,25 +8,11 @@ These instructions apply to contributions for the `serial_hid_core` library.
 
 ## Design Rules
 - Keep protocol behavior fixed; do not introduce runtime protocol reconfiguration.
+- Treat [`PROTOCOL.md`](./PROTOCOL.md) as the protocol source of truth.
 - Keep the primary ABI in C and usable from C-only toolchains.
 - Keep C++ support as thin wrappers over the C API; wrappers must remain optional.
 - Avoid dynamic allocation, exceptions, RTTI-dependent behavior, and heavy STL usage.
 - Prefer deterministic execution, bounded buffers, and small stack usage.
-
-## Protocol Invariants
-- Request frame format: `0xAB <Length> <FrameId:2> <ReqType> <Payload...> <CRC8>`.
-- Reply frame format: `0xAB <Length> <FrameId:2> <ReplyType> <Payload...> <CRC8>`.
-- `Length` includes `FrameId + Type + Payload + CRC8`.
-- CRC is CRC-8 over `FrameId + Type + Payload` only.
-- Existing keyboard/mouse operations return `SHD_REPLY_OP_OK` on success.
-- Reset requests use `SHD_FRAME_RESET` with a 1-byte payload (`0` normal, nonzero bootloader request).
-- Valid reset requests return `SHD_REPLY_OP_OK`, then trigger reboot after successful reply write.
-- Request execution errors return `SHD_REPLY_OP_ERROR` with a 1-byte `shd_status_t` payload.
-- Invalid/corrupted frames return `SHD_REPLY_INVALID` when possible.
-- Read timeouts while receiving a frame return `SHD_REPLY_TIMEOUT` when possible.
-- Error replies use parsed `FrameId` when available; otherwise use `0xFFFF`.
-- `SHD_RELEASE_ALL_KEYS` behavior must stay intact for key and mouse release paths.
-- Absolute move coordinates must remain non-zero and within current resolution bounds.
 
 ## Interface Contracts
 - `shd_core_deps_t` is the only integration boundary.
@@ -54,7 +40,7 @@ These instructions apply to contributions for the `serial_hid_core` library.
 - Prefer explicit fixed-width integer types for protocol-related values.
 
 ## Change Checklist
-- Preserve all protocol invariants listed above.
+- Preserve all protocol rules defined in [`PROTOCOL.md`](./PROTOCOL.md).
 - Update docs when wire format or public API changes.
 - Ensure the library still builds in a standard embedded C/C++ toolchain.
 
