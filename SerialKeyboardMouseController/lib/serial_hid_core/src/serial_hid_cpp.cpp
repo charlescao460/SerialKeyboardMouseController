@@ -95,6 +95,11 @@ uint8_t host_status_flags(void* ctx)
     return static_cast<Host*>(ctx)->get_status_flags();
 }
 
+void reset_reboot(void* ctx, uint8_t enter_bootloader)
+{
+    static_cast<Reset*>(ctx)->reboot(enter_bootloader);
+}
+
 } // namespace
 
 shd_serial_io_t make_c_serial(SerialIo& serial)
@@ -171,6 +176,14 @@ shd_host_t make_c_host(Host& host)
     return out;
 }
 
+shd_reset_t make_c_reset(Reset& reset)
+{
+    shd_reset_t out;
+    out.ctx = &reset;
+    out.reboot = &reset_reboot;
+    return out;
+}
+
 Core::Core(const shd_core_deps_t& deps)
     : core_(), deps_(deps)
 {
@@ -182,6 +195,7 @@ Core::Core(SerialIo& serial,
            RelMouse& rel_mouse,
            AbsMouse& abs_mouse,
            Host& host,
+           Reset& reset,
            Clock& clock,
            Crc8* crc8,
            Logger* logger)
@@ -192,6 +206,7 @@ Core::Core(SerialIo& serial,
     deps_.rel_mouse = make_c_rel_mouse(rel_mouse);
     deps_.abs_mouse = make_c_abs_mouse(abs_mouse);
     deps_.host = make_c_host(host);
+    deps_.reset = make_c_reset(reset);
     if (crc8 != 0)
     {
         deps_.crc8 = make_c_crc8(*crc8);

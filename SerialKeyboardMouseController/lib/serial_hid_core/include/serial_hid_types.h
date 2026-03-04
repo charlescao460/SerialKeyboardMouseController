@@ -52,15 +52,22 @@ typedef enum shd_frame_type {
     SHD_FRAME_KEY_RELEASE = 0xBCu,
 
     SHD_FRAME_QUERY_KEYBOARD_LOCK = 0xC0u,
-    SHD_FRAME_QUERY_HOST_STATUS = 0xC1u
+    SHD_FRAME_QUERY_HOST_STATUS = 0xC1u,
+    SHD_FRAME_RESET = 0xF0u
 } shd_frame_type_t;
+
+/** @brief Reset request payload values for SHD_FRAME_RESET. */
+typedef enum shd_reset_mode {
+    SHD_RESET_NORMAL = 0x00u,
+    SHD_RESET_BOOTLOADER = 0x01u
+} shd_reset_mode_t;
 
 /** @brief Reply frame type IDs from device to host. */
 typedef enum shd_reply_type {
-    SHD_REPLY_OP_OK = 0x01u,
-    SHD_REPLY_OP_ERROR = 0x02u,
-    SHD_REPLY_INVALID = 0x03u,
-    SHD_REPLY_TIMEOUT = 0x04u,
+    SHD_REPLY_OP_OK = 0x01u, // HID report succeed
+    SHD_REPLY_OP_ERROR = 0x02u, // HID report error, including timeout waiting host polls
+    SHD_REPLY_INVALID = 0x03u, // Invalid frame
+    SHD_REPLY_TIMEOUT = 0x04u, // Timeout on serial input. 
 
     SHD_REPLY_KEYBOARD_LOCK = 0x20u,
     SHD_REPLY_HOST_STATUS = 0x21u

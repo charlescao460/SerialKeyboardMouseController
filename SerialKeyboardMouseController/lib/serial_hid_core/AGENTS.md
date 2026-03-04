@@ -19,6 +19,8 @@ These instructions apply to contributions for the `serial_hid_core` library.
 - `Length` includes `FrameId + Type + Payload + CRC8`.
 - CRC is CRC-8 over `FrameId + Type + Payload` only.
 - Existing keyboard/mouse operations return `SHD_REPLY_OP_OK` on success.
+- Reset requests use `SHD_FRAME_RESET` with a 1-byte payload (`0` normal, nonzero bootloader request).
+- Valid reset requests return `SHD_REPLY_OP_OK`, then trigger reboot after successful reply write.
 - Request execution errors return `SHD_REPLY_OP_ERROR` with a 1-byte `shd_status_t` payload.
 - Invalid/corrupted frames return `SHD_REPLY_INVALID` when possible.
 - Read timeouts while receiving a frame return `SHD_REPLY_TIMEOUT` when possible.
@@ -30,6 +32,7 @@ These instructions apply to contributions for the `serial_hid_core` library.
 - `shd_core_deps_t` is the only integration boundary.
 - Required dependencies must be non-null.
 - `keyboard.get_lock_state` and `host.get_status_flags` are required.
+- `reset.reboot` is required.
 - `logger` is optional.
 - `crc8.compute` is optional; if absent, core must use built-in software CRC-8.
 - Timeout policy belongs to core via `shd_core_set_timeout_ms`.

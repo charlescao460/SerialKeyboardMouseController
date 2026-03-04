@@ -78,6 +78,13 @@ public:
     virtual uint8_t get_status_flags() = 0;
 };
 
+class Reset
+{
+public:
+    virtual ~Reset() {}
+    virtual void reboot(uint8_t enter_bootloader) = 0;
+};
+
 shd_serial_io_t make_c_serial(SerialIo& serial);
 shd_keyboard_t make_c_keyboard(Keyboard& keyboard);
 shd_rel_mouse_t make_c_rel_mouse(RelMouse& mouse);
@@ -86,6 +93,7 @@ shd_crc8_t make_c_crc8(Crc8& crc8);
 shd_clock_t make_c_clock(Clock& clock);
 shd_logger_t make_c_logger(Logger& logger);
 shd_host_t make_c_host(Host& host);
+shd_reset_t make_c_reset(Reset& reset);
 
 class Core
 {
@@ -96,6 +104,7 @@ public:
          RelMouse& rel_mouse,
          AbsMouse& abs_mouse,
          Host& host,
+         Reset& reset,
          Clock& clock,
          Crc8* crc8 = 0,
          Logger* logger = 0);

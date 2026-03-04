@@ -33,11 +33,15 @@ extern "C" {
  *   Mouse resolution:  <Type> <2-byte width LE> <2-byte height LE>
  *   Key press:         <Type> <ScanCode>
  *   Key release:       <Type> <ScanCode>
+ *   Reset:             <Type> <ResetMode:1>
+ *                      ResetMode=0 normal reboot, nonzero bootloader request.
  *
  * Reply behavior:
  *   Existing keyboard/mouse requests return SHD_REPLY_OP_OK with the same FrameId.
  *   Keyboard lock query returns SHD_REPLY_KEYBOARD_LOCK + 1-byte lock bitmask.
  *   Host status query returns SHD_REPLY_HOST_STATUS + 1-byte host flag bitmask.
+ *   Reset request returns SHD_REPLY_OP_OK, then firmware reboots immediately
+ *   after the reply frame has been fully sent.
  *   Request execution errors return SHD_REPLY_OP_ERROR + 1-byte shd_status_t value.
  *
  * Example request (mouse left press, FrameId=0x1234):
@@ -57,6 +61,12 @@ extern "C" {
  *
  * Example reply (configured + SOF active, FrameId=0x1235):
  *   AB 05 35 12 21 05 33
+ *
+ * Example request (reset normal mode, FrameId=0x1236):
+ *   AB 05 36 12 F0 00 BD
+ *
+ * Example reply (operation succeed, FrameId=0x1236):
+ *   AB 04 36 12 01 E6
  */
 
 /**
@@ -70,6 +80,8 @@ typedef struct shd_core {
     uint32_t timeout_ms;
     uint16_t current_resolution_width;
     uint16_t current_resolution_height;
+    uint8_t pending_reset;
+    uint8_t pending_bootloader;
     uint8_t frame_buffer[SHD_MAX_FRAME_LENGTH];
 } shd_core_t;
 

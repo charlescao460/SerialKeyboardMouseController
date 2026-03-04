@@ -21,7 +21,8 @@ static bool shd_core_deps_valid(const shd_core_deps_t* deps)
            deps->rel_mouse.move != NULL && deps->rel_mouse.scroll != NULL &&
            deps->rel_mouse.press != NULL && deps->rel_mouse.release != NULL &&
            deps->abs_mouse.move != NULL && deps->abs_mouse.change_resolution != NULL &&
-           deps->clock.now_ms != NULL && deps->host.get_status_flags != NULL;
+           deps->clock.now_ms != NULL && deps->host.get_status_flags != NULL &&
+           deps->reset.reboot != NULL;
 }
 
 static void shd_log(const shd_core_t* core, const char* msg)
@@ -354,6 +355,17 @@ static shd_status_t shd_execute_request(shd_core_t* core,
         reply->payload_len = 1u;
         return SHD_STATUS_OK;
     }
+    case SHD_FRAME_RESET:
+    {
+        if (payload_len != 1u)
+        {
+            return SHD_STATUS_INVALID_PAYLOAD;
+        }
+
+        core->pending_reset = 1u;
+        core->pending_bootloader = (payload[0] != SHD_RESET_NORMAL) ? 1u : 0u;
+        return SHD_STATUS_OK;
+    }
     default:
         return SHD_STATUS_UNSUPPORTED_FRAME;
     }
@@ -438,6 +450,9 @@ shd_status_t shd_core_tick(shd_core_t* core)
         return SHD_STATUS_BAD_DEPENDENCY;
     }
 
+    core->pending_reset = 0u;
+    core->pending_bootloader = 0u;
+
     if (core->deps.serial.available(core->deps.serial.ctx) <= 0)
     {
         return SHD_STATUS_NO_DATA;
@@ -502,7 +517,20 @@ shd_status_t shd_core_tick(shd_core_t* core)
 
     if (status == SHD_STATUS_OK)
     {
-        return shd_send_reply(core, frame_id, reply.type, reply.payload, reply.payload_len);
+        status = shd_send_reply(core, frame_id, reply.type, reply.payload, reply.payload_len);
+        if (status == SHD_STATUS_OK && core->pending_reset != 0u)
+        {
+            const uint8_t enter_bootloader = core->pending_bootloader;
+            core->pending_reset = 0u;
+            core->pending_bootloader = 0u;
+            core->deps.reset.reboot(core->deps.reset.ctx, enter_bootloader);
+        }
+        else
+        {
+            core->pending_reset = 0u;
+            core->pending_bootloader = 0u;
+        }
+        return status;
     }
 
     shd_log(core, "request execution failed");

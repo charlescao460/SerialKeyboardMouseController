@@ -9,6 +9,7 @@
 - No dynamic allocation in core
 - C ABI for C-only toolchains
 - Optional C++ wrapper layer
+- Reset request support with post-reply reboot callback
 
 ## Frame Format
 Request:
@@ -37,6 +38,7 @@ Currently implemented requests:
 - Key press / release
 - Keyboard lock query
 - Host status query
+- Reset request (`SHD_FRAME_RESET`, type `0xF0`)
 
 Current reply behavior:
 - Successful operation -> `SHD_REPLY_OP_OK` with same `FrameId`
@@ -45,11 +47,13 @@ Current reply behavior:
 - Valid request with execution error -> `SHD_REPLY_OP_ERROR` + 1 byte `shd_status_t`
 - Invalid/corrupted frames -> `SHD_REPLY_INVALID` (best-effort `FrameId`, or `0xFFFF`)
 - Read timeout while receiving frame -> `SHD_REPLY_TIMEOUT` (best-effort `FrameId`, or `0xFFFF`)
+- Valid reset request -> `SHD_REPLY_OP_OK` then reboot callback is invoked immediately
+  after successful reply transmission
 
 ## C Integration
 1. Include `serial_hid_core.h`
 2. Provide `shd_core_deps_t` callbacks:
-- Required: serial, keyboard, rel_mouse, abs_mouse, host, clock
+- Required: serial, keyboard, rel_mouse, abs_mouse, host, reset, clock
 - Optional: crc8 override, logger
 3. Init and run:
 - `shd_core_init(&core, &deps);`
@@ -77,10 +81,21 @@ Include `serial_hid_cpp.hpp`, implement adapter classes, then construct `shd::cp
 
 Constructor:
 ```cpp
-shd::cpp::Core core(serial, keyboard, rel_mouse, abs_mouse, host, clock,
+shd::cpp::Core core(serial, keyboard, rel_mouse, abs_mouse, host, reset, clock,
                     /*crc8*/ nullptr,
                     /*logger*/ nullptr);
 ```
 
 If you have hardware CRC-8, pass a `shd::cpp::Crc8` implementation.
 Implement `Keyboard::get_lock_state()` and `Host::get_status_flags()` for query support.
+Implement `Reset::reboot(uint8_t)` for reset-frame support.
+
+## Reset Payload
+- Request type: `SHD_FRAME_RESET` (`0xF0`)
+- Payload length: exactly 1 byte
+- Payload values:
+  - `SHD_RESET_NORMAL` (`0x00`): normal reboot
+  - `SHD_RESET_BOOTLOADER` (`0x01`): bootloader requested (any nonzero is treated as requested)
+
+For Arduino integration in this repository, bootloader intent is currently ignored and a normal
+reboot is performed.

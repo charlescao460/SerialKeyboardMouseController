@@ -75,6 +75,12 @@ typedef struct shd_host {
     uint8_t (*get_status_flags)(void* ctx);
 } shd_host_t;
 
+/** @brief Reset callback for deferred reboot requests. */
+typedef struct shd_reset {
+    void* ctx;
+    void (*reboot)(void* ctx, uint8_t enter_bootloader);
+} shd_reset_t;
+
 /** @brief Aggregated runtime dependencies required by the core. */
 typedef struct shd_core_deps {
     shd_serial_io_t serial;
@@ -85,6 +91,7 @@ typedef struct shd_core_deps {
     shd_clock_t clock;
     shd_logger_t logger;
     shd_host_t host;
+    shd_reset_t reset;
 } shd_core_deps_t;
 
 #ifdef __cplusplus

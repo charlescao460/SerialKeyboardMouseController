@@ -6,6 +6,9 @@
 
 // Make sure to change SERIAL_RX_BUFFER_SIZE to 512 or higher in <HardwareSerial.h>
 #include <Arduino.h>
+#if defined(ARDUINO_ARCH_AVR)
+#include <avr/wdt.h>
+#endif
 #include "Keyboard.h"
 #include "AbsMouse.h"
 #include "debug_print.h"
@@ -130,15 +133,39 @@ public:
     }
 };
 
+class ArduinoReset : public shd::cpp::Reset
+{
+public:
+    void reboot(uint8_t enter_bootloader) override
+    {
+        (void)enter_bootloader;
+#if defined(ARDUINO_ARCH_AVR)
+        wdt_enable(WDTO_15MS);
+        while (true)
+        {
+        }
+#elif defined(ARDUINO_ARCH_SAMD)
+        NVIC_SystemReset();
+        while (true)
+        {
+        }
+#else
+#error "Reset is not implemented for this architecture."
+#endif
+    }
+};
+
 /****************************** Globals *******************************/
 static ArduinoSerialIo g_serial_io(ControlSerial);
 static ArduinoKeyboard g_keyboard;
 static ArduinoRelMouse g_rel_mouse;
 static ArduinoAbsMouse g_abs_mouse;
 static ArduinoHost g_host;
+static ArduinoReset g_reset;
 static ArduinoClock g_clock;
 
-static shd::cpp::Core g_core(g_serial_io, g_keyboard, g_rel_mouse, g_abs_mouse, g_host, g_clock);
+static shd::cpp::Core g_core(
+    g_serial_io, g_keyboard, g_rel_mouse, g_abs_mouse, g_host, g_reset, g_clock);
 
 // the setup function runs once when you press reset or power the board
 void setup()
